@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jehidy</title>
+<style>
+:root{--bg:#eaeff4;--fg:#14202b;--card:#fff;--mut:#56687a;--bd:#cbd6e0;--ac:#336791;--acf:#fff;--bad:#b3261e;--term:#0e1822;--tfg:#d6e2ec;--tcmd:#7f9bb3;--ttag:#7fd1a8;--terr:#ff8d85;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d141b;--fg:#e4edf4;--card:#16212b;--mut:#8ea3b5;--bd:#2a3948;--ac:#7fb0d6;--acf:#0a1620;--bad:#ff8d85;--term:#070d13}}
+:root[data-theme="dark"]{--bg:#0d141b;--fg:#e4edf4;--card:#16212b;--mut:#8ea3b5;--bd:#2a3948;--ac:#7fb0d6;--acf:#0a1620;--bad:#ff8d85;--term:#070d13}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:16px}
+h1{font:700 1.5rem/1.2 Georgia,"Times New Roman",serif;margin:8px 0 4px}
+.sub{color:var(--mut);margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:14px}
+textarea{width:100%;min-height:230px;resize:vertical;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg)}
+button:focus-visible,textarea:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.btn{background:var(--ac);color:var(--acf);border:0;padding:9px 16px;border-radius:6px;font:inherit;font-weight:600;cursor:pointer}
+.btn.sec{background:transparent;color:var(--fg);border:1px solid var(--bd);font-weight:500}
+.chip{border:1px solid var(--bd);background:var(--bg);color:var(--fg);padding:3px 10px;border-radius:99px;font:13px ui-monospace,Menlo,Consolas,monospace;cursor:pointer}
+.hint{color:var(--mut);font-size:.85rem}
+#out{background:var(--term);border-radius:10px;padding:12px;max-height:62vh;overflow:auto;min-height:90px}
+#out pre{margin:0 0 10px;font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--tfg);white-space:pre;overflow-x:auto}
+#out pre.cmd{color:var(--tcmd);white-space:pre-wrap}
+#out pre.tag{color:var(--ttag)}
+#out pre.err{color:var(--terr);white-space:pre-wrap}
+</style>
+</head>
+<body>
+<main>
+<h1>Jehidy</h1>
+<p class="sub">Tu base de datos LDD-LMD (estados civiles, personas, funcionarios, pedidos y stock) cargada en una terminal tipo psql. Ejecuta consultas o modifica los datos; si seleccionas texto, solo se ejecuta la selección.</p>
+<div class="card">
+  <textarea id="ta" spellcheck="false" aria-label="Editor SQL"></textarea>
+  <div class="row">
+    <button class="btn" id="bRun">Ejecutar (Ctrl+Enter)</button>
+    <button class="btn sec" id="bEx">Ver script de creación</button>
+    <button class="btn sec" id="bClr">Limpiar pantalla</button>
+    <button class="btn sec" id="bRst">Restaurar datos originales</button>
+  </div>
+  <div class="row"><span class="hint">Tablas:</span><span id="chips" class="row" style="margin:0"></span></div>
+  <p class="hint" style="margin:8px 0 0">Escribe \? para ver qué comandos entiende. Los datos quedan guardados en este navegador.</p>
+</div>
+<div id="out" role="log" aria-live="polite"></div>
+</main>
+<script>
+(function(){
+var KEY='pg_sim_ldd_v1',db,snap=null;
+var SAMPLE="-- LDD Y LMD: creación de estructura y manipulación de datos\nCREATE TABLE estados_civiles (\n  id_ec     SERIAL PRIMARY KEY,\n  ec_descri VARCHAR(100) NOT NULL\n);\nCREATE TABLE cargos (\n  id_car     SERIAL PRIMARY KEY,\n  car_descri VARCHAR(100) NOT NULL\n);\nCREATE TABLE ciudades (\n  id_ciu     SERIAL PRIMARY KEY,\n  ciu_descri VARCHAR(100) NOT NULL\n);\nCREATE TABLE articulos (\n  id_art      SERIAL PRIMARY KEY,\n  arti_descri VARCHAR(100) NOT NULL,\n  precio_uni  INTEGER NOT NULL,\n  art_tipo    VARCHAR(30)\n);\nCREATE TABLE depositos (\n  id_dep     SERIAL PRIMARY KEY,\n  dep_descri VARCHAR(100) NOT NULL\n);\nCREATE TABLE personas (\n  id_per       SERIAL PRIMARY KEY,\n  per_nombre   VARCHAR(50) NOT NULL,\n  per_apellido VARCHAR(50) NOT NULL,\n  id_ciu       INTEGER,\n  id_ec        INTEGER,\n  CONSTRAINT fk_personas_ciudades FOREIGN KEY (id_ciu) REFERENCES ciudades(id_ciu),\n  CONSTRAINT fk_personas_estados_civiles FOREIGN KEY (id_ec) REFERENCES estados_civiles(id_ec)\n);\nCREATE TABLE funcionarios (\n  id_fun     SERIAL PRIMARY KEY,\n  id_per     INTEGER NOT NULL,\n  id_car     INTEGER NOT NULL,\n  fun_estado VARCHAR(20) NOT NULL,\n  CONSTRAINT fk_funcionarios_personas FOREIGN KEY (id_per) REFERENCES personas(id_per),\n  CONSTRAINT fk_funcionarios_cargos FOREIGN KEY (id_car) REFERENCES cargos(id_car)\n);\nCREATE TABLE pedido (\n  ped_nro    SERIAL PRIMARY KEY,\n  ped_estado VARCHAR(20) NOT NULL,\n  ped_fecha  DATE NOT NULL,\n  id_fun     INTEGER NOT NULL,\n  CONSTRAINT fk_pedido_funcionarios FOREIGN KEY (id_fun) REFERENCES funcionarios(id_fun)\n);\nCREATE TABLE pedido_detalle (\n  ped_nro   INTEGER NOT NULL,\n  id_art    INTEGER NOT NULL,\n  ped_canti INTEGER NOT NULL,\n  PRIMARY KEY (ped_nro, id_art),\n  CONSTRAINT fk_pedido_detalle_pedido FOREIGN KEY (ped_nro) REFERENCES pedido(ped_nro),\n  CONSTRAINT fk_pedido_detalle_articulos FOREIGN KEY (id_art) REFERENCES articulos(id_art)\n);\nCREATE TABLE stock (\n  id_art INTEGER NOT NULL,\n  id_dep INTEGER NOT NULL,\n  actual INTEGER NOT NULL,\n  minimo INTEGER NOT NULL,\n  maximo INTEGER NOT NULL,\n  PRIMARY KEY (id_art, id_dep),\n  CONSTRAINT fk_stock_articulos FOREIGN KEY (id_art) REFERENCES articulos(id_art),\n  CONSTRAINT fk_stock_depositos FOREIGN KEY (id_dep) REFERENCES depositos(id_dep)\n);\n\n-- Inserción de registros\nINSERT INTO estados_civiles (ec_descri) VALUES\n  ('SOLTERO/A'),\n  ('CASADO/A');\nINSERT INTO cargos (car_descri) VALUES\n  ('Gerente'),\n  ('Supervisor');\nINSERT INTO ciudades (ciu_descri) VALUES\n  ('Asunción'),\n  ('Ciudad del Este');\nINSERT INTO articulos (arti_descri, precio_uni, art_tipo) VALUES\n  ('Notebook Lenovo 15\"', 4500000.00, 'Electrónica'),\n  ('Mouse inalámbrico', 85000.00, 'Periférico'),\n  ('Teclado mecánico', 120000.00, 'Periférico');\nINSERT INTO depositos (dep_descri) VALUES\n  ('Depósito Central'),\n  ('Depósito Este');\nINSERT INTO personas (per_nombre, per_apellido, id_ciu, id_ec) VALUES\n  ('Juan', 'Pérez', 1, 2),\n  ('María', 'González', 1, 1);\nINSERT INTO funcionarios (id_per, id_car, fun_estado) VALUES\n  (1, 1, 'Activo'),\n  (2, 1, 'Activo');\nINSERT INTO pedido (ped_estado, ped_fecha, id_fun) VALUES\n  ('Pendiente', '2026-01-15', 1),\n  ('Entregado', '2026-01-20', 2);\nINSERT INTO pedido_detalle (ped_nro, id_art, ped_canti) VALUES\n  (1, 1, 2),\n  (1, 2, 5),\n  (2, 3, 1);\nINSERT INTO stock (id_art, id_dep, actual, minimo, maximo) VALUES\n  (1, 1, 15, 5, 30),\n  (1, 2, 8, 3, 20),\n  (2, 1, 50, 10, 100);\n";
+var QUERIES="-- Consultas de ejemplo (Ejecutar corre todas; selecciona una para correr solo esa)\nSELECT * FROM stock;\n\nSELECT p.ped_nro, p.ped_fecha, p.ped_estado,\n       pe.per_nombre || ' ' || pe.per_apellido AS funcionario, c.car_descri AS cargo\nFROM pedido p\nJOIN funcionarios f ON f.id_fun = p.id_fun\nJOIN personas pe ON pe.id_per = f.id_per\nJOIN cargos c ON c.id_car = f.id_car\nORDER BY p.ped_nro;\n\nSELECT a.arti_descri, d.dep_descri, s.actual, s.minimo\nFROM stock s\nJOIN articulos a ON a.id_art = s.id_art\nJOIN depositos d ON d.id_dep = s.id_dep\nORDER BY a.arti_descri;\n\nSELECT pd.ped_nro, SUM(pd.ped_canti * a.precio_uni) AS total\nFROM pedido_detalle pd JOIN articulos a ON a.id_art = pd.id_art\nGROUP BY pd.ped_nro ORDER BY pd.ped_nro;\n";
+var AYUDA="Comandos:\n  \\dt          listar tablas\n  \\d tabla     describir una tabla\n\nSQL: CREATE TABLE, DROP TABLE, INSERT ... RETURNING, SELECT (JOIN, LEFT JOIN, WHERE,\nGROUP BY, HAVING, ORDER BY, LIMIT, OFFSET, DISTINCT), UPDATE, DELETE,\nBEGIN / COMMIT / ROLLBACK.\nTipos: SERIAL, INTEGER, NUMERIC, VARCHAR, TEXT, DATE, TIMESTAMP, BOOLEAN.\nRestricciones: PRIMARY KEY, UNIQUE, NOT NULL, DEFAULT, CHECK, REFERENCES.\nFunciones: COUNT SUM AVG MIN MAX ROUND UPPER LOWER LENGTH ABS COALESCE NOW VERSION.";
+
+/* ---------- utilidades ---------- */
+function E(m,d){var e=new Error(m);e.d=d;return e;}
+function tbl(n){var t=db.tables[n];if(!t)throw E('relation "'+n+'" does not exist');return t;}
+function cmp(a,b){if(typeof a!==typeof b){if(typeof a==='number'&&!isNaN(b))b=+b;else if(typeof b==='number'&&!isNaN(a))a=+a;}return a<b?-1:a>b?1:0;}
+function wrap(t,r){var o={};o[t.name]=r;return o;}
+function cx(t){return{src:[{al:t.name,t:t}]};}
+var NOCX={src:[]};
+
+/* ---------- lexer ---------- */
+function lex(s){var t=[],m,i,re=/\s+|--[^\n]*|('(?:[^']|'')*')|("(?:[^"]|"")*")|(\d+\.?\d*)|([A-Za-z_][A-Za-z0-9_]*)|(<>|<=|>=|!=|\|\||::|[(),.*+\-\/%=<>;])/y;
+ while(re.lastIndex<s.length){i=re.lastIndex;m=re.exec(s);if(!m)throw E('syntax error at or near "'+s.slice(i,i+8)+'"');
+  if(m[1]!==undefined)t.push({k:'s',v:m[1].slice(1,-1).replace(/''/g,"'")});
+  else if(m[2]!==undefined)t.push({k:'i',v:m[2].slice(1,-1).replace(/""/g,'"')});
+  else if(m[3]!==undefined)t.push({k:'n',v:parseFloat(m[3])});
+  else if(m[4]!==undefined)t.push({k:'w',v:m[4].toLowerCase()});
+  else if(m[5])t.push({k:'p',v:m[5]});}
+ return t;}
+function mk(sql){return{t:lex(sql),n:0,
+ cur:function(o){return this.t[this.n+(o||0)];},
+ is:function(v,o){var k=this.cur(o);return !!k&&(k.k==='w'||k.k==='p')&&k.v===v;},
+ eat:function(v){if(this.is(v)){this.n++;return true;}return false;},
+ ex:function(v){if(!this.eat(v))this.bad();},
+ bad:function(){var k=this.cur();throw E('syntax error'+(k?' at or near "'+k.v+'"':' at end of input'));},
+ id:function(){var k=this.cur();if(!k||(k.k!=='w'&&k.k!=='i'))this.bad();this.n++;return k.v;}};}
+function end(P){if(P.n<P.t.length)P.bad();}
+var RES={from:1,where:1,group:1,order:1,limit:1,offset:1,having:1,join:1,left:1,inner:1,on:1,returning:1,union:1,set:1,values:1,and:1,or:1,as:1,cross:1,right:1,full:1,outer:1};
+
+/* ---------- parser de expresiones ---------- */
+function pe(P){var a=pa(P);while(P.eat('or'))a={t:'bin',op:'or',a:a,b:pa(P)};return a;}
+function pa(P){var a=pn(P);while(P.eat('and'))a={t:'bin',op:'and',a:a,b:pn(P)};return a;}
+function pn(P){return P.eat('not')?{t:'not',a:pn(P)}:pc(P);}
+function pc(P){var a=pcat(P);for(;;){
+ if(P.eat('is')){var n=P.eat('not');if(P.eat('null')){a={t:'isn',a:a,neg:n};continue;}P.bad();}
+ var ng=false;
+ if(P.is('not')&&(P.is('in',1)||P.is('like',1)||P.is('ilike',1)||P.is('between',1))){P.n++;ng=true;}
+ if(P.eat('in')){P.ex('(');var l=[];do l.push(pe(P));while(P.eat(','));P.ex(')');a={t:'in',a:a,l:l,neg:ng};continue;}
+ var ci=P.is('ilike');
+ if(P.eat('like')||P.eat('ilike')){a={t:'like',a:a,b:pcat(P),neg:ng,ci:ci};continue;}
+ if(P.eat('between')){var lo=pcat(P);P.ex('and');a={t:'btw',a:a,lo:lo,hi:pcat(P),neg:ng};continue;}
+ var k=P.cur();
+ if(k&&k.k==='p'&&/^(=|<>|!=|<=|>=|<|>)$/.test(k.v)){P.n++;a={t:'bin',op:k.v==='!='?'<>':k.v,a:a,b:pcat(P)};continue;}
+ return a;}}
+function pcat(P){var a=pad(P);while(P.eat('||'))a={t:'bin',op:'||',a:a,b:pad(P)};return a;}
+function pad(P){var a=pm(P),k;while((k=P.cur())&&k.k==='p'&&(k.v==='+'||k.v==='-')){P.n++;a={t:'bin',op:k.v,a:a,b:pm(P)};}return a;}
+function pm(P){var a=pu(P),k;while((k=P.cur())&&k.k==='p'&&(k.v==='*'||k.v==='/'||k.v==='%')){P.n++;a={t:'bin',op:k.v,a:a,b:pu(P)};}return a;}
+function pu(P){if(P.eat('-'))return{t:'neg',a:pu(P)};if(P.eat('+'))return pu(P);
+ var a=pp(P);while(P.eat('::')){var ty=P.id();if(P.eat('(')){while(!P.eat(')')){if(!P.cur())P.bad();P.n++;}}a={t:'cast',a:a,ty:ty};}return a;}
+function pp(P){var k=P.cur();if(!k)P.bad();
+ if(k.k==='n'||k.k==='s'){P.n++;return{t:'lit',v:k.v};}
+ if(P.eat('(')){var e=pe(P);P.ex(')');return e;}
+ if(k.k==='w'){
+  if(k.v==='null'){P.n++;return{t:'lit',v:null};}
+  if(k.v==='true'||k.v==='false'){P.n++;return{t:'lit',v:k.v==='true'};}}
+ if(k.k==='w'||k.k==='i'){P.n++;
+  if(k.k==='w'&&P.is('(')){P.n++;var f={t:'fn',n:k.v,a:[]};
+   if(P.eat('*'))f.star=true;else if(!P.is(')')){f.dist=P.eat('distinct');do f.a.push(pe(P));while(P.eat(','));}
+   P.ex(')');return f;}
+  if(k.k==='w'&&/^(current_date|current_timestamp)$/.test(k.v))return{t:'fn',n:k.v,a:[]};
+  if(P.eat('.')){return{t:'col',tb:k.v,n:P.id()};}
+  return{t:'col',n:k.v};}
+ P.bad();}
+function plist(P){var l=[];P.ex('(');do l.push(P.id());while(P.eat(','));P.ex(')');return l;}
+function alias(P){var q=P.cur();return(q&&(q.k==='i'||(q.k==='w'&&!RES[q.v])))?P.id():null;}
+function pitems(P){var it=[];do{
+ if(P.is('*')){P.n++;it.push({e:{t:'star'}});continue;}
+ var k=P.cur();
+ if(k&&(k.k==='w'||k.k==='i')&&P.is('.',1)&&P.is('*',2)){P.n+=3;it.push({e:{t:'star',tb:k.v}});continue;}
+ var e=pe(P),al=P.eat('as')?P.id():alias(P);
+ it.push({e:e,al:al});}while(P.eat(','));return it;}
+function ptab(P){var n=P.id(),al=n;if(P.eat('as'))al=P.id();else{var a=alias(P);if(a)al=a;}return{n:n,al:al};}
+function psel(P){P.ex('select');var s={dist:P.eat('distinct'),it:pitems(P),src:[],j:[],ob:[],gb:[]};
+ if(P.eat('from')){s.src.push(ptab(P));
+  for(;;){var lf=false;
+   if(P.eat(',')){s.j.push({t:ptab(P),on:null,lf:false});continue;}
+   if(P.eat('left')){lf=true;P.eat('outer');}else P.eat('inner');
+   if(!P.eat('join'))break;
+   var t2=ptab(P);P.ex('on');s.j.push({t:t2,on:pe(P),lf:lf});}}
+ if(P.eat('where'))s.w=pe(P);
+ if(P.eat('group')){P.ex('by');do s.gb.push(pe(P));while(P.eat(','));}
+ if(P.eat('having'))s.h=pe(P);
+ if(P.eat('order')){P.ex('by');do{var e=pe(P),d=false;if(P.eat('desc'))d=true;else P.eat('asc');s.ob.push({e:e,d:d});}while(P.eat(','));}
+ if(P.eat('limit'))s.lim=pe(P);
+ if(P.eat('offset'))s.off=pe(P);
+ return s;}
+
+/* ---------- evaluación ---------- */
+var AGG={count:1,sum:1,avg:1,min:1,max:1};
+function hasAgg(e){if(!e||typeof e!=='object')return false;if(e.t==='fn'&&AGG[e.n])return true;return Object.keys(e).some(function(k){return hasAgg(e[k]);});}
+function nm(e){return e.t==='col'||e.t==='fn'?e.n:e.t==='cast'?nm(e.a):'?column?';}
+function fc(e){if(!e||typeof e!=='object')return'';if(e.t==='col')return e.n;var r='';Object.keys(e).some(function(k){return(r=fc(e[k]));});return r;}
+function col(e,env,ctx){
+ if(e.tb){var s=ctx.src.find(function(x){return x.al===e.tb;});if(!s)throw E('missing FROM-clause entry for table "'+e.tb+'"');
+  if(!s.t.cols.some(function(c){return c.n===e.n;}))throw E('column '+e.tb+'.'+e.n+' does not exist');
+  var r=env[e.tb];return r?r[e.n]:null;}
+ var m=ctx.src.filter(function(x){return x.t.cols.some(function(c){return c.n===e.n;});});
+ if(!m.length)throw E('column "'+e.n+'" does not exist');
+ if(m.length>1)throw E('column reference "'+e.n+'" is ambiguous');
+ var r2=env[m[0].al];return r2?r2[e.n]:null;}
+function castv(v,ty){if(v===null)return null;
+ if(/^(int|integer|int4|int8|bigint|smallint)$/.test(ty)){var n=Math.round(Number(v));if(isNaN(n))throw E('invalid input syntax for type integer: "'+v+'"');return n;}
+ if(/^(numeric|decimal|real|float|float8|double)$/.test(ty)){var m=Number(v);if(isNaN(m))throw E('invalid input syntax for type numeric: "'+v+'"');return m;}
+ if(ty==='date')return String(v).slice(0,10);
+ if(/^bool/.test(ty))return v===true||/^(t|true|yes|on|1)$/i.test(String(v));
+ return String(v);}
+function fn(e,env,grp,ctx){var n=e.n;
+ if(AGG[n]){if(!grp)throw E('aggregate functions are not allowed in this context');
+  if(e.star)return grp.length;
+  var vs=grp.map(function(g){return ev(e.a[0],g,null,ctx);}).filter(function(v){return v!==null;});
+  if(e.dist){var sn={};vs=vs.filter(function(v){return sn[v]?false:(sn[v]=1);});}
+  if(n==='count')return vs.length;
+  if(!vs.length)return null;
+  if(n==='min'||n==='max')return vs.reduce(function(a,b){return(cmp(a,b)<0)===(n==='min')?a:b;});
+  var s=vs.reduce(function(a,b){return a+Number(b);},0);return n==='sum'?s:s/vs.length;}
+ var a=e.a.map(function(x){return ev(x,env,grp,ctx);});
+ switch(n){
+ case'now':case'current_timestamp':return new Date().toISOString().slice(0,19).replace('T',' ');
+ case'current_date':return new Date().toISOString().slice(0,10);
+ case'upper':return a[0]===null?null:String(a[0]).toUpperCase();
+ case'lower':return a[0]===null?null:String(a[0]).toLowerCase();
+ case'length':return a[0]===null?null:String(a[0]).length;
+ case'abs':return a[0]===null?null:Math.abs(a[0]);
+ case'round':return a[0]===null?null:Number(Math.round(a[0]+'e'+(a[1]||0))+'e-'+(a[1]||0));
+ case'coalesce':return a.find(function(v){return v!==null;})??null;
+ case'version':return'PostgreSQL 16.0 (simulado en el navegador)';}
+ throw E('function '+n+'() does not exist');}
+function ev(e,env,grp,ctx){
+ switch(e.t){
+ case'lit':return e.v;
+ case'col':return col(e,env,ctx);
+ case'fn':return fn(e,env,grp,ctx);
+ case'neg':{var a=ev(e.a,env,grp,ctx);return a===null?null:-a;}
+ case'not':{var n=ev(e.a,env,grp,ctx);return n===null?null:!n;}
+ case'isn':{var v=ev(e.a,env,grp,ctx);return e.neg?v!==null:v===null;}
+ case'cast':return castv(ev(e.a,env,grp,ctx),e.ty);
+ case'in':{var x=ev(e.a,env,grp,ctx);if(x===null)return null;var f=e.l.some(function(i){var y=ev(i,env,grp,ctx);return y!==null&&cmp(x,y)===0;});return e.neg?!f:f;}
+ case'btw':{var b=ev(e.a,env,grp,ctx),lo=ev(e.lo,env,grp,ctx),hi=ev(e.hi,env,grp,ctx);if(b===null||lo===null||hi===null)return null;var r=cmp(b,lo)>=0&&cmp(b,hi)<=0;return e.neg?!r:r;}
+ case'like':{var s=ev(e.a,env,grp,ctx),p=ev(e.b,env,grp,ctx);if(s===null||p===null)return null;
+  var re=new RegExp('^'+String(p).replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/%/g,'.*').replace(/_/g,'.')+'$',e.ci?'is':'s'),m=re.test(String(s));return e.neg?!m:m;}
+ case'bin':{var o=e.op;
+  if(o==='and'||o==='or'){var A=ev(e.a,env,grp,ctx);if(o==='and'&&A===false)return false;if(o==='or'&&A===true)return true;
+   var B=ev(e.b,env,grp,ctx);if(o==='and'&&B===false)return false;if(o==='or'&&B===true)return true;return(A===null||B===null)?null:o==='and';}
+  var p1=ev(e.a,env,grp,ctx),q1=ev(e.b,env,grp,ctx);if(p1===null||q1===null)return null;
+  switch(o){
+  case'=':return cmp(p1,q1)===0;case'<>':return cmp(p1,q1)!==0;case'<':return cmp(p1,q1)<0;case'>':return cmp(p1,q1)>0;
+  case'<=':return cmp(p1,q1)<=0;case'>=':return cmp(p1,q1)>=0;
+  case'||':return String(p1)+String(q1);
+  case'+':return +p1+ +q1;case'-':return p1-q1;case'*':return p1*q1;
+  case'/':if(+q1===0)throw E('division by zero');return(Number.isInteger(p1)&&Number.isInteger(q1))?Math.trunc(p1/q1):p1/q1;
+  case'%':if(+q1===0)throw E('division by zero');return p1%q1;}}}
+ throw E('unsupported expression');}
+
+/* ---------- SELECT ---------- */
+function expand(it,srcs){var items=[];it.forEach(function(i){
+ if(i.e.t==='star')srcs.forEach(function(x){if(i.e.tb&&i.e.tb!==x.al)return;x.t.cols.forEach(function(c){items.push({e:{t:'col',tb:x.al,n:c.n},name:c.n});});});
+ else items.push({e:i.e,name:i.al||nm(i.e)});});return items;}
+function runSel(s){
+ var ctx={src:[]},envs=[{}];
+ if(s.src.length){var t0=tbl(s.src[0].n),a0=s.src[0].al;ctx.src.push({al:a0,t:t0});
+  envs=t0.rows.map(function(r){var o={};o[a0]=r;return o;});
+  s.j.forEach(function(j){var t=tbl(j.t.n);ctx.src.push({al:j.t.al,t:t});var ne=[];
+   envs.forEach(function(en){var hit=false;
+    t.rows.forEach(function(r){var o=Object.assign({},en);o[j.t.al]=r;if(!j.on||ev(j.on,o,null,ctx)===true){ne.push(o);hit=true;}});
+    if(!hit&&j.lf){var o2=Object.assign({},en);o2[j.t.al]=null;ne.push(o2);}});
+   envs=ne;});}
+ if(s.w)envs=envs.filter(function(e){return ev(s.w,e,null,ctx)===true;});
+ var items=expand(s.it,ctx.src),units;
+ var gb=s.gb.map(function(g){return g.t==='lit'&&typeof g.v==='number'?items[g.v-1].e:g;});
+ var agg=gb.length||items.some(function(i){return hasAgg(i.e);})||(s.h&&hasAgg(s.h));
+ if(agg){var gs={},ord=[];
+  if(gb.length)envs.forEach(function(e){var k=JSON.stringify(gb.map(function(g){return ev(g,e,null,ctx);}));if(!gs[k]){gs[k]=[];ord.push(k);}gs[k].push(e);});
+  else{gs.a=envs;ord=['a'];}
+  units=ord.map(function(k){return{env:gs[k][0]||{},grp:gs[k]};});
+  if(s.h)units=units.filter(function(u){return ev(s.h,u.env,u.grp,ctx)===true;});
+ }else units=envs.map(function(e){return{env:e,grp:null};});
+ var out=units.map(function(u){return{u:u,v:items.map(function(i){return ev(i.e,u.env,u.grp,ctx);})};});
+ if(s.ob.length){
+  var keys=s.ob.map(function(o){var e=o.e;
+   if(e.t==='lit'&&typeof e.v==='number')return function(r){return r.v[e.v-1];};
+   if(e.t==='col'&&!e.tb){var ix=items.findIndex(function(i){return i.name===e.n;});if(ix>=0)return function(r){return r.v[ix];};}
+   return function(r){return ev(e,r.u.env,r.u.grp,ctx);};});
+  out.sort(function(a,b){for(var i=0;i<keys.length;i++){var x=keys[i](a),y=keys[i](b),c=x===y?0:x===null?1:y===null?-1:cmp(x,y);if(c)return s.ob[i].d?-c:c;}return 0;});}
+ var rows=out.map(function(r){return r.v;});
+ if(s.dist){var seen={};rows=rows.filter(function(r){var k=JSON.stringify(r);return seen[k]?false:(seen[k]=1);});}
+ var o=s.off?ev(s.off,{},null,NOCX):0,l=s.lim?ev(s.lim,{},null,NOCX):rows.length;
+ return{cols:items.map(function(i){return i.name;}),rows:rows.slice(o,o+l)};}
+function retr(t,it,rows){var ctx=cx(t),items=expand(it,ctx.src);
+ return{cols:items.map(function(i){return i.name;}),rows:rows.map(function(r){var env=wrap(t,r);return items.map(function(i){return ev(i.e,env,null,ctx);});})};}
+
+/* ---------- tipos y restricciones ---------- */
+function coerce(v,c){if(v===null)return null;
+ switch(c.k){
+ case'int':{var n=Number(v);if(isNaN(n)||v===''||typeof v==='boolean')throw E('invalid input syntax for type integer: "'+v+'"');return Math.round(n);}
+ case'num':{var m=Number(v);if(isNaN(m)||v===''||typeof v==='boolean')throw E('invalid input syntax for type numeric: "'+v+'"');return c.sc!=null?+m.toFixed(c.sc):m;}
+ case'text':{var s=String(v);if(c.len&&s.length>c.len)throw E('value too long for type character varying('+c.len+')');return s;}
+ case'date':{var d=String(v);if(!/^\d{4}-\d{2}-\d{2}/.test(d))throw E('invalid input syntax for type date: "'+d+'"');return d.slice(0,10);}
+ case'bool':{if(typeof v==='boolean')return v;if(/^(t|true|yes|on|1)$/i.test(v))return true;if(/^(f|false|no|off|0)$/i.test(v))return false;throw E('invalid input syntax for type boolean: "'+v+'"');}}
+ return String(v);}
+function chk(t,r,pool){
+ t.cols.forEach(function(c){if(r[c.n]===null&&(c.nn||t.pk.indexOf(c.n)>=0))throw E('null value in column "'+c.n+'" of relation "'+t.name+'" violates not-null constraint');});
+ t.ck.forEach(function(x){if(ev(x,wrap(t,r),null,cx(t))===false)throw E('new row for relation "'+t.name+'" violates check constraint "'+t.name+'_'+fc(x)+'_check"');});
+ (t.pk.length?[t.pk]:[]).concat(t.uq).forEach(function(u){
+  if(u.some(function(c){return r[c]===null;}))return;
+  if(pool.some(function(o){return u.every(function(c){return o[c]!==null&&cmp(o[c],r[c])===0;});}))
+   throw E('duplicate key value violates unique constraint "'+t.name+'_'+(u===t.pk?'pkey':u.join('_')+'_key')+'"','Key ('+u.join(', ')+')=('+u.map(function(c){return r[c];}).join(', ')+') already exists.');});
+ t.fk.forEach(function(f){var v=f.c.map(function(c){return r[c];});if(v.some(function(x){return x===null;}))return;
+  var p=tbl(f.rt),rc=f.rc||p.pk;
+  if(!p.rows.some(function(o){return rc.every(function(c,i){return cmp(o[c],v[i])===0;});}))
+   throw E('insert or update on table "'+t.name+'" violates foreign key constraint "'+t.name+'_'+f.c.join('_')+'_fkey"','Key ('+f.c.join(', ')+')=('+v.join(', ')+') is not present in table "'+f.rt+'".');});}
+
+/* ---------- DDL / DML ---------- */
+function pcol(P,t){var c={n:P.id(),nn:false},w=[];
+ while(P.cur()&&P.cur().k==='w'&&!/^(not|null|primary|unique|default|references|check)$/.test(P.cur().v)){w.push(P.cur().v);P.n++;}
+ if(!w.length)P.bad();
+ var a=[];if(P.eat('(')){while(!P.eat(')')){var k=P.cur();if(!k)P.bad();if(k.k==='n')a.push(k.v);P.n++;}}
+ var b=w[0];c.ty=w.join(' ')+(a.length?'('+a.join(',')+')':'');
+ if(/^(serial|bigserial|smallserial)$/.test(b)){c.k='int';c.ser=true;c.nn=true;}
+ else if(/^(int|integer|int4|int8|bigint|smallint)$/.test(b))c.k='int';
+ else if(/^(numeric|decimal|real|float|float4|float8|double)$/.test(b)){c.k='num';if(a.length>1)c.sc=a[1];}
+ else if(/^(varchar|character|char|text)$/.test(b)){c.k='text';if(a.length&&b!=='text')c.len=a[0];}
+ else if(b==='date')c.k='date';
+ else if(/^timestamp/.test(b))c.k='ts';
+ else if(/^bool/.test(b))c.k='bool';
+ else throw E('type "'+b+'" does not exist');
+ for(;;){
+  if(P.eat('not')){P.ex('null');c.nn=true;}
+  else if(P.eat('null')){}
+  else if(P.eat('primary')){P.ex('key');t.pk=[c.n];c.nn=true;}
+  else if(P.eat('unique'))t.uq.push([c.n]);
+  else if(P.eat('default'))c.def=pu(P);
+  else if(P.eat('references')){var rt=P.id();t.fk.push({c:[c.n],rt:rt,rc:P.is('(')?plist(P):null});}
+  else if(P.eat('check')){P.ex('(');t.ck.push(pe(P));P.ex(')');}
+  else break;}
+ t.cols.push(c);}
+function pcreate(P){P.ex('create');P.ex('table');var ine=false;if(P.eat('if')){P.ex('not');P.ex('exists');ine=true;}
+ var t={name:P.id(),cols:[],rows:[],seq:{},pk:[],uq:[],fk:[],ck:[]};P.ex('(');
+ do{
+  if(P.eat('constraint'))P.id();
+  if(P.eat('primary')){P.ex('key');t.pk=plist(P);}
+  else if(P.eat('unique'))t.uq.push(plist(P));
+  else if(P.eat('foreign')){P.ex('key');var cs=plist(P);P.ex('references');var rt=P.id();t.fk.push({c:cs,rt:rt,rc:P.is('(')?plist(P):null});}
+  else if(P.eat('check')){P.ex('(');t.ck.push(pe(P));P.ex(')');}
+  else pcol(P,t);
+ }while(P.eat(','));
+ P.ex(')');return{t:t,ine:ine};}
+function pins(P){P.ex('insert');P.ex('into');var n=P.id(),cs=null;if(P.is('('))cs=plist(P);P.ex('values');
+ var rs=[];do{P.ex('(');var r=[];do r.push(pe(P));while(P.eat(','));P.ex(')');rs.push(r);}while(P.eat(','));
+ return{n:n,cs:cs,rs:rs,ret:P.eat('returning')?pitems(P):null};}
+function xins(s){var t=tbl(s.n),cs=s.cs||t.cols.map(function(c){return c.n;}),nw=[];
+ cs.forEach(function(c){if(!t.cols.some(function(x){return x.n===c;}))throw E('column "'+c+'" of relation "'+t.name+'" does not exist');});
+ s.rs.forEach(function(vals){
+  if(vals.length!==cs.length)throw E(vals.length>cs.length?'INSERT has more expressions than target columns':'INSERT has more target columns than expressions');
+  var r={};
+  t.cols.forEach(function(c){var i=cs.indexOf(c.n),v;
+   if(i>=0)v=coerce(ev(vals[i],{},null,NOCX),c);
+   else if(c.ser){t.seq[c.n]=(t.seq[c.n]||0)+1;v=t.seq[c.n];}
+   else v=c.def?coerce(ev(c.def,{},null,NOCX),c):null;
+   r[c.n]=v;});
+  chk(t,r,t.rows.concat(nw));nw.push(r);});
+ nw.forEach(function(r){t.rows.push(r);});
+ var res=s.ret?retr(t,s.ret,nw):{};res.tag='INSERT 0 '+nw.length;return res;}
+function pupd(P){P.ex('update');var n=P.id(),sets=[];P.ex('set');
+ do{var c=P.id();P.ex('=');sets.push({c:c,e:pe(P)});}while(P.eat(','));
+ var w=P.eat('where')?pe(P):null;return{n:n,sets:sets,w:w,ret:P.eat('returning')?pitems(P):null};}
+function xupd(s){var t=tbl(s.n),ctx=cx(t),ups=[];
+ s.sets.forEach(function(x){if(!t.cols.some(function(c){return c.n===x.c;}))throw E('column "'+x.c+'" of relation "'+t.name+'" does not exist');});
+ t.rows.forEach(function(r){if(s.w&&ev(s.w,wrap(t,r),null,ctx)!==true)return;
+  var nr=Object.assign({},r);
+  s.sets.forEach(function(x){var c=t.cols.find(function(c){return c.n===x.c;});nr[x.c]=coerce(ev(x.e,wrap(t,r),null,ctx),c);});
+  ups.push({o:r,n:nr});});
+ var rest=t.rows.filter(function(o){return !ups.some(function(u){return u.o===o;});});
+ ups.forEach(function(u,i){chk(t,u.n,rest.concat(ups.filter(function(_,j){return j!==i;}).map(function(x){return x.n;})));});
+ ups.forEach(function(u){Object.assign(u.o,u.n);});
+ var res=s.ret?retr(t,s.ret,ups.map(function(u){return u.o;})):{};res.tag='UPDATE '+ups.length;return res;}
+function pdel(P){P.ex('delete');P.ex('from');var n=P.id(),w=P.eat('where')?pe(P):null;return{n:n,w:w,ret:P.eat('returning')?pitems(P):null};}
+function xdel(s){var t=tbl(s.n),ctx=cx(t),gone=t.rows.filter(function(r){return !s.w||ev(s.w,wrap(t,r),null,ctx)===true;});
+ Object.keys(db.tables).forEach(function(k){var c=db.tables[k];
+  c.fk.forEach(function(f){if(f.rt!==t.name)return;var rc=f.rc||t.pk;
+   gone.forEach(function(g){
+    var ref=c.rows.some(function(o){return !(c===t&&gone.indexOf(o)>=0)&&f.c.every(function(x,i){return o[x]!==null&&cmp(o[x],g[rc[i]])===0;});});
+    if(ref)throw E('update or delete on table "'+t.name+'" violates foreign key constraint "'+c.name+'_'+f.c.join('_')+'_fkey" on table "'+c.name+'"','Key ('+rc.join(', ')+')=('+rc.map(function(x){return g[x];}).join(', ')+') is still referenced from table "'+c.name+'".');});});});
+ var res=s.ret?retr(t,s.ret,gone):{};
+ t.rows=t.rows.filter(function(r){return gone.indexOf(r)<0;});res.tag='DELETE '+gone.length;return res;}
+function dtxt(d){return d.t==='lit'?(typeof d.v==='string'?"'"+d.v+"'":String(d.v)):d.t==='fn'?d.n:'expr';}
+function meta(s){var p=s.split(/\s+/),c=p[0];
+ if(c==='\\dt'){var ks=Object.keys(db.tables);if(!ks.length)return{text:'Did not find any relations.'};
+  return{cols:['Schema','Name','Type','Owner'],rows:ks.map(function(k){return['public',k,'table','postgres'];})};}
+ if(c==='\\d'&&p[1]){var t=tbl(p[1]);
+  return{title:'Table "public.'+t.name+'"',cols:['Column','Type','Nullable','Default'],rows:t.cols.map(function(c){
+   return[c.n,c.ty,(c.nn||t.pk.indexOf(c.n)>=0)?'not null':'',c.ser?"nextval('"+t.name+'_'+c.n+"_seq')":c.def?dtxt(c.def):''];})};}
+ if(c==='\\?'||c==='\\h')return{text:AYUDA};
+ throw E('invalid command '+c+'. Prueba con \\?');}
+function exec(sql){
+ var s=sql.trim();if(s[0]==='\\')return meta(s);
+ var P=mk(s),w=P.cur()&&P.cur().v,r;
+ switch(w){
+ case'select':r=runSel(psel(P));end(P);return r;
+ case'insert':r=pins(P);end(P);return xins(r);
+ case'update':r=pupd(P);end(P);return xupd(r);
+ case'delete':r=pdel(P);end(P);return xdel(r);
+ case'create':r=pcreate(P);end(P);
+  if(db.tables[r.t.name]){if(r.ine)return{tag:'NOTICE:  relation "'+r.t.name+'" already exists, skipping'};throw E('relation "'+r.t.name+'" already exists');}
+  r.t.fk.forEach(function(f){if(f.rt!==r.t.name)tbl(f.rt);});
+  db.tables[r.t.name]=r.t;return{tag:'CREATE TABLE'};
+ case'drop':{P.ex('drop');P.ex('table');var ie=false;if(P.eat('if')){P.ex('exists');ie=true;}var n=P.id(),cas=P.eat('cascade');end(P);
+  if(!db.tables[n]){if(ie)return{tag:'NOTICE:  table "'+n+'" does not exist, skipping'};throw E('table "'+n+'" does not exist');}
+  Object.keys(db.tables).forEach(function(k){var c=db.tables[k];if(k===n)return;
+   if(c.fk.some(function(f){return f.rt===n;})){if(!cas)throw E('cannot drop table '+n+' because other objects depend on it','constraint on table '+k+' depends on table '+n+'. Usa DROP TABLE ... CASCADE.');
+    c.fk=c.fk.filter(function(f){return f.rt!==n;});}});
+  delete db.tables[n];return{tag:'DROP TABLE'};}
+ case'begin':case'start':if(snap)return{tag:'WARNING:  there is already a transaction in progress'};snap=JSON.stringify(db);return{tag:'BEGIN'};
+ case'commit':case'end':snap=null;return{tag:'COMMIT'};
+ case'rollback':case'abort':if(snap){db=JSON.parse(snap);snap=null;}return{tag:'ROLLBACK'};}
+ P.bad();}
+
+/* ---------- terminal ---------- */
+var ta=document.getElementById('ta'),out=document.getElementById('out');
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}}
+function load(){try{var r=localStorage.getItem(KEY);if(r){db=JSON.parse(r);return;}}catch(e){}db={tables:{}};}
+function split(s){var o=[],cur='',q=null;
+ for(var i=0;i<s.length;i++){var c=s[i];
+  if(q){cur+=c;if(c===q)q=null;continue;}
+  if(c==="'"||c==='"'){q=c;cur+=c;continue;}
+  if(c==='-'&&s[i+1]==='-'){while(i<s.length&&s[i]!=='\n')i++;i--;continue;}
+  if(c===';'){o.push(cur);cur='';continue;}
+  if(c==='\n'&&cur.trim()[0]==='\\'){o.push(cur);cur='';continue;}
+  cur+=c;}
+ o.push(cur);return o.map(function(x){return x.trim();}).filter(Boolean);}
+function show(v){if(v===null||v===undefined)return'';if(typeof v==='boolean')return v?'t':'f';if(typeof v==='number')return String(+v.toFixed(10));return String(v);}
+function fmt(r){var cs=r.cols,rows=r.rows.map(function(x){return x.map(show);});
+ var w=cs.map(function(c,i){return rows.reduce(function(m,x){return Math.max(m,x[i].length);},c.length);});
+ var num=cs.map(function(c,i){return r.rows.length>0&&r.rows.every(function(x){return typeof x[i]==='number'||x[i]===null;});});
+ function pad(s,i,h){var g=w[i]-s.length;if(h)return' '.repeat(g>>1)+s+' '.repeat(g-(g>>1));return num[i]?' '.repeat(g)+s:s+' '.repeat(g);}
+ var L=[' '+cs.map(function(c,i){return pad(c,i,1);}).join(' | ')+' ',w.map(function(x){return'-'.repeat(x+2);}).join('+')];
+ rows.forEach(function(x){L.push(' '+x.map(function(v,i){return pad(v,i);}).join(' | ')+' ');});
+ L.push('('+rows.length+(rows.length===1?' row)':' rows)'));return L.join('\n');}
+function add(cls,text){var p=document.createElement('pre');p.className=cls;p.textContent=text;out.appendChild(p);}
+function chips(){var c=document.getElementById('chips');c.textContent='';
+ Object.keys(db.tables).forEach(function(k){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=k;b.onclick=function(){ta.value='SELECT * FROM '+k+';';ta.focus();};c.appendChild(b);});
+ if(!c.children.length)c.textContent='ninguna todavía';}
+function run(){runText(ta.selectionStart!==ta.selectionEnd?ta.value.slice(ta.selectionStart,ta.selectionEnd):ta.value);}
+function runText(sql){
+ split(sql).forEach(function(st){
+  add('cmd','postgres=# '+st.replace(/\s*\n\s*/g,' '));
+  try{var r=exec(st);
+   if(r.title)add('res',r.title);
+   if(r.cols)add('res',fmt(r));
+   if(r.text)add('res',r.text);
+   if(r.tag)add('tag',r.tag);
+  }catch(e){add('err','ERROR:  '+e.message+(e.d?'\nDETAIL:  '+e.d:''));}});
+ if(!snap)save();
+ chips();out.scrollTop=out.scrollHeight;}
+document.getElementById('bRun').onclick=run;
+ta.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();run();}});
+document.getElementById('bEx').onclick=function(){ta.value=SAMPLE;ta.focus();};
+document.getElementById('bClr').onclick=function(){out.textContent='';};
+var rb=document.getElementById('bRst'),rt;
+rb.onclick=function(){
+ if(rb.dataset.sure){clearTimeout(rt);delete rb.dataset.sure;rb.textContent='Restaurar datos originales';db={tables:{}};snap=null;out.textContent='';runText(SAMPLE);return;}
+ rb.dataset.sure=1;rb.textContent='¿Seguro? Pulsa otra vez';rt=setTimeout(function(){delete rb.dataset.sure;rb.textContent='Restaurar datos originales';},3000);};
+load();
+add('res','Jehidy · PostgreSQL 16.0 (simulado)');
+if(!Object.keys(db.tables).length){add('res','Creando tu base de datos desde el script LDD-LMD...');runText(SAMPLE);}
+chips();ta.value=QUERIES;
+})();
+</script>
+</body>
+</html>
