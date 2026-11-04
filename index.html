@@ -1,422 +1,799 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Jehidy</title>
-<style>
-:root{--bg:#eaeff4;--fg:#14202b;--card:#fff;--mut:#56687a;--bd:#cbd6e0;--ac:#336791;--acf:#fff;--bad:#b3261e;--term:#0e1822;--tfg:#d6e2ec;--tcmd:#7f9bb3;--ttag:#7fd1a8;--terr:#ff8d85;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d141b;--fg:#e4edf4;--card:#16212b;--mut:#8ea3b5;--bd:#2a3948;--ac:#7fb0d6;--acf:#0a1620;--bad:#ff8d85;--term:#070d13}}
-:root[data-theme="dark"]{--bg:#0d141b;--fg:#e4edf4;--card:#16212b;--mut:#8ea3b5;--bd:#2a3948;--ac:#7fb0d6;--acf:#0a1620;--bad:#ff8d85;--term:#070d13}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
-main{max-width:980px;margin:0 auto;padding:16px}
-h1{font:700 1.5rem/1.2 Georgia,"Times New Roman",serif;margin:8px 0 4px}
-.sub{color:var(--mut);margin:0 0 14px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:14px}
-textarea{width:100%;min-height:230px;resize:vertical;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg)}
-button:focus-visible,textarea:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
-.btn{background:var(--ac);color:var(--acf);border:0;padding:9px 16px;border-radius:6px;font:inherit;font-weight:600;cursor:pointer}
-.btn.sec{background:transparent;color:var(--fg);border:1px solid var(--bd);font-weight:500}
-.chip{border:1px solid var(--bd);background:var(--bg);color:var(--fg);padding:3px 10px;border-radius:99px;font:13px ui-monospace,Menlo,Consolas,monospace;cursor:pointer}
-.hint{color:var(--mut);font-size:.85rem}
-#out{background:var(--term);border-radius:10px;padding:12px;max-height:62vh;overflow:auto;min-height:90px}
-#out pre{margin:0 0 10px;font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--tfg);white-space:pre;overflow-x:auto}
-#out pre.cmd{color:var(--tcmd);white-space:pre-wrap}
-#out pre.tag{color:var(--ttag)}
-#out pre.err{color:var(--terr);white-space:pre-wrap}
-</style>
+    <!-- Define la codificación para soportar tildes y caracteres especiales. -->
+    <meta charset="UTF-8">
+    <!-- Hace que la interfaz sea adaptable a pantallas pequeñas. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Título que aparecerá en la pestaña del navegador. -->
+    <title>PSQL Web Emulator - Ariel Lesmo</title>
+    <!-- Hoja de estilos embebida (unificada con el HTML). -->
+    <style>
+/* =========================================================
+   PSQL WEB EMULATOR - HOJA DE ESTILOS
+   Interfaz inspirada en Windows Terminal / psql.
+   ========================================================= */
+
+/* Variables de color reutilizables en toda la aplicación. */
+:root {
+    --bg: #111111;
+    --panel: #171717;
+    --panel-2: #202020;
+    --border: #3a3a3a;
+    --text: #dddddd;
+    --muted: #999999;
+    --green: #7ee787;
+    --blue: #58a6ff;
+    --yellow: #e3b341;
+    --red: #ff7b72;
+}
+
+/* Hace que el tamaño de los elementos sea más fácil de controlar. */
+* {
+    box-sizing: border-box;
+}
+
+/* Configuración general de la página. */
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Consolas, "Courier New", monospace;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Contenedor general. */
+.app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Barra superior. */
+.topbar {
+    min-height: 70px;
+    background: #1b1b1b;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+}
+
+/* Título principal. */
+.topbar h1 {
+    margin: 0;
+    font-size: 19px;
+    color: #f0f0f0;
+}
+
+/* Subtítulo. */
+.topbar span {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+/* Grupo de botones. */
+.top-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* Botones generales. */
+button {
+    border: 1px solid var(--border);
+    background: #252525;
+    color: var(--text);
+    border-radius: 5px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+/* Efecto visual al pasar el mouse. */
+button:hover {
+    background: #303030;
+}
+
+/* Botón de ejecución destacado. */
+#runButton {
+    border-color: var(--green);
+    color: var(--green);
+}
+
+/* Barra de estado. */
+.statusbar {
+    min-height: 34px;
+    background: #0c0c0c;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 18px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* Valores importantes de la sesión. */
+.statusbar strong {
+    color: var(--green);
+}
+
+/* Área central. */
+.workspace {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    position: relative;
+}
+
+/* Panel de terminal. */
+.terminal-panel {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #0b0b0b;
+}
+
+/* Salida de la terminal. */
+.terminal-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Una línea de historial. */
+.terminal-line {
+    margin-bottom: 8px;
+}
+
+/* Tablas de resultados dentro de la terminal. */
+.terminal-output table {
+    border-collapse: collapse;
+    margin: 6px 0 14px;
+    font-size: 13px;
+}
+
+.terminal-output th,
+.terminal-output td {
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    text-align: left;
+}
+
+.terminal-output th {
+    background: #1c1c1c;
+    color: var(--blue);
+}
+
+/* Prompt mostrado en verde. */
+.prompt {
+    color: var(--green);
+    white-space: nowrap;
+    padding-top: 4px;
+}
+
+/* Entrada del usuario. */
+.input-row {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid #242424;
+    background: #0b0b0b;
+}
+
+/* Campo de comandos. */
+#commandInput {
+    flex: 1;
+    resize: none;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #eeeeee;
+    font: inherit;
+    line-height: 1.5;
+    min-height: 24px;
+    max-height: 140px;
+    overflow-y: auto;
+}
+
+/* Colores de diferentes tipos de salida. */
+.output-success { color: var(--blue); }
+.output-error { color: var(--red); }
+.output-info { color: var(--yellow); }
+.output-normal { color: var(--text); }
+
+/* Panel lateral. */
+.help-panel {
+    width: 380px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 14px;
+}
+
+/* Oculta elementos (panel de ayuda al inicio). */
+.hidden {
+    display: none !important;
+}
+
+/* Cabecera del panel de ayuda. */
+.help-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+}
+
+/* Título de ayuda. */
+.help-header h2 {
+    margin: 0 0 10px;
+    font-size: 16px;
+}
+
+/* Botón X. */
+#closeHelp {
+    padding: 3px 9px;
+    font-size: 18px;
+}
+
+/* Categorías de ayuda. */
+.help-category {
+    margin-bottom: 16px;
+}
+
+/* Título de cada categoría. */
+.help-category h3 {
+    color: var(--blue);
+    margin: 0 0 7px;
+    font-size: 13px;
+}
+
+/* Texto explicativo (panel Explicaciones). */
+.help-category p {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.5;
+}
+
+/* Cada comando del panel. */
+.help-command {
+    margin: 5px 0;
+    font-size: 12px;
+}
+
+/* Código del comando. */
+.help-command code {
+    color: var(--green);
+}
+
+/* Descripción del comando. */
+.help-command span {
+    color: var(--muted);
+}
+
+/* Pie de página. */
+footer {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #161616;
+    border-top: 1px solid var(--border);
+    color: #777;
+    font-size: 11px;
+}
+
+/* Adaptación para pantallas pequeñas. */
+@media (max-width: 850px) {
+    .help-panel {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: min(380px, 92vw);
+        z-index: 10;
+        box-shadow: -10px 0 30px #000;
+    }
+
+    .statusbar {
+        gap: 10px;
+        overflow-x: auto;
+    }
+}
+    </style>
 </head>
 <body>
-<main>
-<h1>Jehidy</h1>
-<p class="sub">Tu base de datos LDD-LMD (estados civiles, personas, funcionarios, pedidos y stock) cargada en una terminal tipo psql. Ejecuta consultas o modifica los datos; si seleccionas texto, solo se ejecuta la selección.</p>
-<div class="card">
-  <textarea id="ta" spellcheck="false" aria-label="Editor SQL"></textarea>
-  <div class="row">
-    <button class="btn" id="bRun">Ejecutar (Ctrl+Enter)</button>
-    <button class="btn sec" id="bEx">Ver script de creación</button>
-    <button class="btn sec" id="bClr">Limpiar pantalla</button>
-    <button class="btn sec" id="bRst">Restaurar datos originales</button>
-  </div>
-  <div class="row"><span class="hint">Tablas:</span><span id="chips" class="row" style="margin:0"></span></div>
-  <p class="hint" style="margin:8px 0 0">Escribe \? para ver qué comandos entiende. Los datos quedan guardados en este navegador.</p>
+    <!-- Contenedor principal de toda la aplicación. -->
+    <main class="app">
+        <!-- Barra superior con título y controles. -->
+        <header class="topbar">
+            <div>
+                <!-- Nombre de la aplicación. -->
+                <h1>PSQL Web Emulator</h1>
+                <!-- Texto identificativo del proyecto. -->
+                <span>PostgreSQL simulado para examen final de base de datos 2</span>
+            </div>
+        </header>
+
+        <!-- Información de la sesión actual. -->
+        <section class="statusbar">
+            <span>Usuario: <strong id="currentUser">postgres</strong></span>
+            <span>Base de datos: <strong id="currentDatabase">postgres</strong></span>
+            <span>Rol: <strong id="currentRole">SUPERUSER</strong></span>
+        </section>
+
+        <!-- Área que contiene terminal y ayuda lateral. -->
+        <section class="workspace">
+            <!-- Terminal principal. -->
+            <section class="terminal-panel">
+                <!-- Salida de comandos. JavaScript agrega aquí los resultados. -->
+                <div id="terminalOutput" class="terminal-output"></div>
+
+                <!-- Línea de entrada estilo psql. -->
+                <div class="input-row">
+                    <!-- Prompt dinámico según usuario y base actual. -->
+                    <span id="prompt" class="prompt"></span>
+                    <!-- Campo donde el usuario escribe comandos SQL/psql. -->
+                    <textarea id="commandInput" rows="1" spellcheck="false"
+                        autocomplete="off" autofocus placeholder="Escriba un comando..."></textarea>
+                    <!-- Botones de acción, alineados a la derecha del campo de comando. -->
+                    <div class="top-actions">
+                        <!-- Ejecuta el comando escrito (RF-03: además de Enter). -->
+                        <button id="runButton">Ejecutar</button>
+                        <!-- Muestra/oculta el panel de ayuda. -->
+                        <button id="helpButton">Ayuda</button>
+                        <!-- Muestra el panel de teoría/explicaciones (RF-12). -->
+                        <button id="explainButton">Explicaciones</button>
+                        <!-- Limpia visualmente la terminal. -->
+                        <button id="clearButton">Limpiar</button>
+                        <!-- Reinicia toda la sesión simulada. -->
+                        <button id="resetButton">Reiniciar</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Panel lateral de ayuda / explicaciones (comparten el mismo panel). -->
+            <aside id="helpPanel" class="help-panel hidden">
+                <div class="help-header">
+                    <h2 id="helpTitle">Ayuda rápida</h2>
+                    <!-- Cierra el panel lateral. -->
+                    <button id="closeHelp">×</button>
+                </div>
+                <!-- JavaScript genera el contenido de ayuda o de explicaciones. -->
+                <div id="helpContent"></div>
+            </aside>
+        </section>
+
+        <!-- Pie de página con autoría. -->
+        <footer>
+            Diseñado por Ariel Lesmo · Proyecto académico · usando Claude.ai
+        </footer>
+    </main>
+
+    <!-- ================================================================
+         MOTOR DE DATOS SIMULADO (antes database.js)
+         Estado completo del emulador en memoria RAM.
+         No usamos localStorage: F5/Ctrl+F5 vuelve al estado inicial (RF-15).
+         ================================================================ -->
+    <script>
+const VERSION="PostgreSQL 16.4 (Emulador PSQL educativo)";
+function initialState(){return{
+ currentDatabase:"postgres",loginRole:"postgres",sessionRole:"postgres",
+ databases:{postgres:{owner:"postgres",tables:{},encoding:"UTF8"}},
+ roles:{postgres:{login:true,superuser:true,password:null,members:[],
+ privileges:{databases:["CONNECT"],schemas:["USAGE","CREATE"],tables:{}}}}
+};}
+let DB=initialState();
+
+/* hasPrivilege(): punto central de control de permisos (RF-07). */
+function hasPrivilege(role,priv,type,obj){
+ const r=DB.roles[role]; if(!r)return false;
+ if(r.superuser)return true;
+ const candidates=[role,...(r.members||[])];
+ return candidates.some(n=>{
+  const x=DB.roles[n];if(!x)return false;
+  if(type==="database")return x.privileges.databases.includes(priv);
+  if(type==="schema")return x.privileges.schemas.includes(priv);
+  if(type==="table")return (x.privileges.tables[obj]||[]).includes(priv);
+  return false;
+ });
+}
+function grantP(role,priv,type,obj){const r=DB.roles[role];if(!r)return;
+ if(type==="database"&&!r.privileges.databases.includes(priv))r.privileges.databases.push(priv);
+ if(type==="schema"&&!r.privileges.schemas.includes(priv))r.privileges.schemas.push(priv);
+ if(type==="table"){r.privileges.tables[obj]??=[];if(!r.privileges.tables[obj].includes(priv))r.privileges.tables[obj].push(priv);}
+}
+function revokeP(role,priv,type,obj){const r=DB.roles[role];if(!r)return;
+ if(type==="database")r.privileges.databases=r.privileges.databases.filter(x=>x!==priv);
+ if(type==="schema")r.privileges.schemas=r.privileges.schemas.filter(x=>x!==priv);
+ if(type==="table"&&r.privileges.tables[obj])r.privileges.tables[obj]=r.privileges.tables[obj].filter(x=>x!==priv);
+}
+    </script>
+
+    <!-- ================================================================
+         INTÉRPRETE DE COMANDOS (antes commands.js)
+         Reconoce los comandos exigidos por RF-04..RF-10, con validaciones
+         de dependencias al eliminar roles/usuarios y el comando whoami.
+         ================================================================ -->
+    <script>
+const ok=t=>({type:"success",text:t}),err=t=>({type:"error",text:"ERROR: "+t});
+const norm=s=>s.trim().replace(/\s+/g," ");
+function parts(s){let a=[],st=0,d=0,q=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==="'"&&s[i-1]!=="\\")q=!q;if(!q){if(c==="(")d++;if(c===")")d--;if(c===","&&d===0){a.push(s.slice(st,i).trim());st=i+1}}}a.push(s.slice(st).trim());return a.filter(Boolean)}
+function need(p,t,o){return hasPrivilege(DB.sessionRole,p,t,o)?null:err(`permiso denegado: ${DB.sessionRole} no tiene ${p} sobre ${t} ${o} [42501]`)}
+
+/* Resuelve una referencia de tabla admitiendo "schema.tabla" o "tabla" a secas (por defecto, schema "public"). */
+function resolveTableRef(ref){
+ const m=ref.match(/^(\w+)\.(\w+)$/);
+ if(m)return{schema:m[1],name:m[2]};
+ return{schema:"public",name:ref};
+}
+/* Separa "TIPO [NOT NULL]" (tal cual se guarda en cada columna) para mostrar Type y Nullable por separado en \d. */
+function splitColumnType(def){
+ const notNull=/not\s+null/i.test(def);
+ const type=def.replace(/not\s+null/i,"").trim();
+ return{type,notNull};
+}
+
+function executeCommand(raw){
+ const s=norm(raw);if(!s)return null;
+ if(/^\\q$|^quit$|^exit$|^salir$/i.test(s)){DB=initialState();return ok("Sesión finalizada. Estado restaurado al estado base.")}
+ if(/^clear$|^cls$|^\\clear$/i.test(s))return{type:"clear"};
+ if(/^whoami;?$/i.test(s))return whoami();
+ if(/^\\l$|^\\list$/i.test(s))return table(["Name","Owner","Encoding"],Object.entries(DB.databases).map(([n,d])=>[n,d.owner,d.encoding||"UTF8"]),"List of databases");
+ if(/^\\du$/i.test(s)||/^select \* from pg_roles;$/i.test(s))return roles();
+ if(/^\\dt$/i.test(s)){let d=DB.databases[DB.currentDatabase];return table(["Schema","Name","Type","Owner"],Object.entries(d.tables).map(([n,t])=>[t.schema||"public",n,t.type||"table",t.owner||d.owner]),"List of relations")}
+ let m=s.match(/^\\d\s+([\w.]+)$/i);if(m)return describe(m[1]);
+ m=s.match(/^\\(?:c|connect)\s+(\w+)$/i);if(m)return connect(m[1]);
+ if(/^select version\(\);?$/i.test(s))return table(["version"],[[VERSION]]);
+
+ m=s.match(/^create database (\w+);$/i);if(m)return createDB(m[1]);
+ m=s.match(/^create table (\w+)\s*\((.+)\);$/i);if(m)return createTable(m[1],m[2]);
+ m=s.match(/^create role (\w+) nologin;$/i);if(m)return createRole(m[1],false,null);
+ m=s.match(/^create user (\w+) with password '([^']*)';$/i);if(m)return createRole(m[1],true,m[2]);
+ m=s.match(/^drop (user|role) (\w+);$/i);if(m)return dropRole(m[2],m[1]);
+
+ m=s.match(/^grant (\w+) to (\w+);$/i);if(m)return grantRole(m[1],m[2]);
+ m=s.match(/^revoke (\w+) from (\w+);$/i);if(m)return revokeRole(m[1],m[2]);
+ m=s.match(/^grant (.+?) on database (\w+) to (\w+);$/i);if(m)return grantObj(m[1],"database",m[2],m[3]);
+ m=s.match(/^grant (.+?) on schema (\w+) to (\w+);$/i);if(m)return grantObj(m[1],"schema",m[2],m[3]);
+ m=s.match(/^grant (.+?) on all tables in schema \w+ to (\w+);$/i);if(m)return grantAll(m[1],m[2]);
+ m=s.match(/^grant (.+?) on (\w+) to (\w+);$/i);if(m)return grantObj(m[1],"table",m[2],m[3]);
+ m=s.match(/^revoke (.+?) on database (\w+) from (\w+);$/i);if(m)return revokeObj(m[1],"database",m[2],m[3]);
+ m=s.match(/^revoke (.+?) on schema (\w+) from (\w+);$/i);if(m)return revokeObj(m[1],"schema",m[2],m[3]);
+ m=s.match(/^revoke (.+?) on all tables in schema \w+ from (\w+);$/i);if(m)return revokeAll(m[1],m[2]);
+ m=s.match(/^revoke (.+?) on (\w+) from (\w+);$/i);if(m)return revokeObj(m[1],"table",m[2],m[3]);
+
+ m=s.match(/^set role (\w+);$/i);if(m)return setRole(m[1]);
+ if(/^reset role;$/i.test(s))return resetRole();
+
+ m=s.match(/^insert into ([\w.]+)\s*(?:\(([^)]*)\))?\s*values\s*\((.+)\);$/i);if(m)return insert(m[1],m[2],m[3]);
+ m=s.match(/^select \* from ([\w.]+);$/i);if(m)return select(m[1]);
+ m=s.match(/^update ([\w.]+) set (.+?)(?: where (.+?))?;$/i);if(m)return update(m[1],m[2],m[3]);
+ m=s.match(/^delete from ([\w.]+)(?: where (.+?))?;$/i);if(m)return del(m[1],m[2]);
+ m=s.match(/^backup database (\w+);$/i);if(m)return backup(m[1]);
+ return err("sintaxis no reconocida. Pulse Ayuda.");
+}
+function table(headers,rows,title){return{type:"table",headers,rows,title}}
+function createDB(n){if(DB.databases[n])return err(`base de datos "${n}" ya existe`);DB.databases[n]={owner:DB.sessionRole,tables:{}};return ok(`CREATE DATABASE\nBase "${n}" creada.`)}
+function connect(n){if(!DB.databases[n])return err(`base de datos "${n}" no existe`);let p=need("CONNECT","database",n);if(p)return p;DB.currentDatabase=n;return ok(`Conectado a "${n}".`)}
+function createTable(n,def){let d=DB.databases[DB.currentDatabase];if(d.tables[n])return err(`la relación "${n}" ya existe`);let p=need("CREATE","schema","public");if(p)return p;let c={};for(let x of parts(def)){let z=x.split(/\s+/);if(z.length<2)return err("definición de columna inválida");c[z[0]]=z.slice(1).join(" ")}d.tables[n]={columns:c,rows:[],schema:"public",owner:DB.sessionRole,type:"table"};return ok(`CREATE TABLE\nTabla "${n}" creada.`)}
+function createRole(n,login,pw){if(DB.roles[n])return err(`el rol "${n}" ya existe`);DB.roles[n]={login,superuser:false,password:pw,members:[],privileges:{databases:[],schemas:[],tables:{}}};return ok(`CREATE ROLE\n"${n}" creado${login?"":" con NOLOGIN"}.`)}
+
+/* DROP ROLE / DROP USER con validación de dependencias.
+   - No se puede eliminar un rol si otro rol/usuario lo tiene concedido (miembros que dependen de él).
+   - No se puede eliminar un usuario/rol si él mismo todavía tiene roles asignados (members no vacío).
+   - No se puede eliminar el rol activo de la sesión ni "postgres". */
+function dropRole(n,kind){
+ if(!DB.roles[n])return err(`rol "${n}" no existe`);
+ if(n==="postgres")return err("no se puede eliminar postgres");
+ if(DB.sessionRole===n)return err(`no se puede eliminar "${n}" porque es el rol activo de la sesión actual`);
+ const dependents=Object.entries(DB.roles).filter(([name,r])=>name!==n&&(r.members||[]).includes(n)).map(([name])=>name);
+ if(dependents.length>0)return err(`no se puede eliminar ${kind==="user"?"el usuario":"el rol"} "${n}": está asignado a ${dependents.join(", ")}. Ejecute REVOKE ${n} FROM ${dependents.join(", ")}; antes de eliminarlo [2BP01]`);
+ const r=DB.roles[n];
+ if((r.members||[]).length>0)return err(`no se puede eliminar ${kind==="user"?"el usuario":"el rol"} "${n}": todavía tiene roles asignados (${r.members.join(", ")}). Ejecute REVOKE ${r.members.join(", ")} FROM ${n}; antes de eliminarlo [2BP01]`);
+ delete DB.roles[n];
+ return ok(`DROP ${kind.toUpperCase()}\n"${n}" eliminado.`)
+}
+
+/* whoami: informa el rol de login y el rol de sesión activo (RF adicional pedido). */
+function whoami(){
+ const r=DB.roles[DB.sessionRole];
+ let txt=`Usuario conectado (login): ${DB.loginRole}\nRol de sesión actual: ${DB.sessionRole}\nSuperusuario: ${r&&r.superuser?"Sí":"No"}`;
+ if(DB.sessionRole!==DB.loginRole)txt+=`\n(Use RESET ROLE; para volver a "${DB.loginRole}")`;
+ return{type:"info",text:txt}
+}
+
+function grantRole(r,u){if(!DB.roles[r]||!DB.roles[u])return err("rol o usuario no existe");if(!DB.roles[u].members.includes(r))DB.roles[u].members.push(r);return ok(`GRANT\nRol "${r}" otorgado a "${u}".`)}
+function revokeRole(r,u){if(!DB.roles[r]||!DB.roles[u])return err("rol o usuario no existe");DB.roles[u].members=DB.roles[u].members.filter(x=>x!==r);return ok(`REVOKE\nRol "${r}" revocado de "${u}".`)}
+function grantObj(list,type,obj,role){if(!DB.roles[role])return err(`rol "${role}" no existe`);list.split(",").forEach(p=>grantP(role,p.trim().toUpperCase(),type,obj));return ok("GRANT\nPrivilegios otorgados.")}
+function revokeObj(list,type,obj,role){if(!DB.roles[role])return err(`rol "${role}" no existe`);list.split(",").forEach(p=>revokeP(role,p.trim().toUpperCase(),type,obj));return ok("REVOKE\nPrivilegios revocados.")}
+function grantAll(list,role){if(!DB.roles[role])return err(`rol "${role}" no existe`);for(let t of Object.keys(DB.databases[DB.currentDatabase].tables))list.split(",").forEach(p=>grantP(role,p.trim().toUpperCase(),"table",t));return ok("GRANT\nPrivilegios otorgados sobre todas las tablas.")}
+function revokeAll(list,role){if(!DB.roles[role])return err(`rol "${role}" no existe`);for(let t of Object.keys(DB.databases[DB.currentDatabase].tables))list.split(",").forEach(p=>revokeP(role,p.trim().toUpperCase(),"table",t));return ok("REVOKE\nPrivilegios revocados sobre todas las tablas.")}
+
+/* SET ROLE corregido: ahora exige membresía (o superusuario) sin importar si el rol
+   destino es LOGIN o NOLOGIN, igual que en PostgreSQL real. Antes solo se validaba
+   para roles NOLOGIN, lo que permitía "saltar" a cualquier usuario sin permiso. */
+function setRole(n){
+ if(!DB.roles[n])return err(`rol "${n}" no existe`);
+ const login=DB.roles[DB.loginRole];
+ const permitido=n===DB.loginRole||login.superuser||(login.members||[]).includes(n);
+ if(!permitido)return err(`permiso denegado para asumir el rol "${n}" [42501]`);
+ DB.sessionRole=n;
+ return ok(`SET ROLE\nRol actual: "${n}". Use whoami para confirmarlo.`)
+}
+function resetRole(){DB.sessionRole=DB.loginRole;return ok(`RESET ROLE\nRol restaurado: "${DB.loginRole}".`)}
+
+function insert(ref,cols,vals){const{schema,name:n}=resolveTableRef(ref);if(schema!=="public")return err(`el esquema "${schema}" no existe`);let t=DB.databases[DB.currentDatabase].tables[n];if(!t)return err(`relación "${ref}" no existe`);let p=need("INSERT","table",n);if(p)return p;let c=cols?cols.split(",").map(x=>x.trim()):Object.keys(t.columns),v=parts(vals).map(x=>x.trim().replace(/^'(.*)'$/,"$1"));if(c.length!==v.length)return err("cantidad de columnas y valores no coincide");let r={};c.forEach((x,i)=>r[x]=v[i]);t.rows.push(r);return ok("INSERT 0 1")}
+function select(ref){const{schema,name:n}=resolveTableRef(ref);if(schema!=="public")return err(`el esquema "${schema}" no existe`);let t=DB.databases[DB.currentDatabase].tables[n];if(!t)return err(`relación "${ref}" no existe`);let p=need("SELECT","table",n);if(p)return p;let h=Object.keys(t.columns);return table(h,t.rows.map(r=>h.map(c=>r[c]??"NULL")))}
+function whereFn(w){if(!w)return()=>true;let m=w.match(/^(\w+)\s*=\s*'?([^']*)'?$/);return m?r=>String(r[m[1]])===m[2]:()=>true}
+function update(ref,a,w){const{schema,name:n}=resolveTableRef(ref);if(schema!=="public")return err(`el esquema "${schema}" no existe`);let t=DB.databases[DB.currentDatabase].tables[n];if(!t)return err(`relación "${ref}" no existe`);let p=need("UPDATE","table",n);if(p)return p;let ch={};parts(a).forEach(x=>{let z=x.split("=");ch[z[0].trim()]=z.slice(1).join("=").trim().replace(/^'(.*)'$/,"$1")});let f=whereFn(w),k=0;t.rows.forEach(r=>{if(f(r)){Object.assign(r,ch);k++}});return ok(`UPDATE ${k}`)}
+function del(ref,w){const{schema,name:n}=resolveTableRef(ref);if(schema!=="public")return err(`el esquema "${schema}" no existe`);let t=DB.databases[DB.currentDatabase].tables[n];if(!t)return err(`relación "${ref}" no existe`);let p=need("DELETE","table",n);if(p)return p;let f=whereFn(w),b=t.rows.length;t.rows=t.rows.filter(r=>!f(r));return ok(`DELETE ${b-t.rows.length}`)}
+function describe(ref){const{schema,name:n}=resolveTableRef(ref);if(schema!=="public")return err(`el esquema "${schema}" no existe`);let t=DB.databases[DB.currentDatabase].tables[n];if(!t)return err(`relación "${ref}" no existe`);const rows=Object.entries(t.columns).map(([c,def])=>{const{type,notNull}=splitColumnType(def);return[c,type,notNull?"not null":""]});return table(["Column","Type","Nullable"],rows,`Table "public.${n}"`)}
+function roles(){return table(["Rol","LOGIN","Superusuario","Membresías"],Object.entries(DB.roles).map(([n,r])=>[n,r.login?"LOGIN":"NOLOGIN",r.superuser?"Sí":"No",(r.members||[]).join(", ")]))}
+function backup(n){let d=DB.databases[n];if(!d)return err(`base de datos "${n}" no existe`);let p=need("CONNECT","database",n);if(p)return p;let out=`-- BACKUP DATABASE ${n}\n`;for(let [tn,t] of Object.entries(d.tables)){out+=`CREATE TABLE ${tn} (${Object.entries(t.columns).map(([c,x])=>c+" "+x).join(", ")});\n`;for(let r of t.rows)out+=`INSERT INTO ${tn} (${Object.keys(t.columns).join(", ")}) VALUES (${Object.keys(t.columns).map(c=>"'"+String(r[c]??"").replaceAll("'","''")+"'").join(", ")});\n`}return{type:"info",text:out}}
+    </script>
+
+    <!-- ================================================================
+         AYUDA Y TEORÍA (antes help.js)
+         Contenido categorizado para los paneles Ayuda (RF-11) y
+         Explicaciones (RF-12), usando las clases .help-category /
+         .help-command definidas en el CSS.
+         ================================================================ -->
+    <script>
+const HELP=`
+<div class="help-category">
+<h3>Meta-comandos</h3>
+<div class="help-command"><code>\\l</code> / <code>\\list</code><span> — lista las bases de datos</span></div>
+<div class="help-command"><code>\\c bd</code> / <code>\\connect bd</code><span> — conecta a una base</span></div>
+<div class="help-command"><code>\\dt</code><span> — lista las tablas de la base actual</span></div>
+<div class="help-command"><code>\\d tabla</code><span> — muestra la estructura de una tabla</span></div>
+<div class="help-command"><code>\\du</code><span> — lista los roles</span></div>
+<div class="help-command"><code>whoami</code><span> — muestra el rol/usuario activo de la sesión</span></div>
+<div class="help-command"><code>\\q</code>, <code>quit</code>, <code>exit</code>, <code>salir</code><span> — sale y reinicia la sesión</span></div>
 </div>
-<div id="out" role="log" aria-live="polite"></div>
-</main>
-<script>
-(function(){
-var KEY='pg_sim_ldd_v1',db,snap=null;
-var SAMPLE="-- LDD Y LMD: creación de estructura y manipulación de datos\nCREATE TABLE estados_civiles (\n  id_ec     SERIAL PRIMARY KEY,\n  ec_descri VARCHAR(100) NOT NULL\n);\nCREATE TABLE cargos (\n  id_car     SERIAL PRIMARY KEY,\n  car_descri VARCHAR(100) NOT NULL\n);\nCREATE TABLE ciudades (\n  id_ciu     SERIAL PRIMARY KEY,\n  ciu_descri VARCHAR(100) NOT NULL\n);\nCREATE TABLE articulos (\n  id_art      SERIAL PRIMARY KEY,\n  arti_descri VARCHAR(100) NOT NULL,\n  precio_uni  INTEGER NOT NULL,\n  art_tipo    VARCHAR(30)\n);\nCREATE TABLE depositos (\n  id_dep     SERIAL PRIMARY KEY,\n  dep_descri VARCHAR(100) NOT NULL\n);\nCREATE TABLE personas (\n  id_per       SERIAL PRIMARY KEY,\n  per_nombre   VARCHAR(50) NOT NULL,\n  per_apellido VARCHAR(50) NOT NULL,\n  id_ciu       INTEGER,\n  id_ec        INTEGER,\n  CONSTRAINT fk_personas_ciudades FOREIGN KEY (id_ciu) REFERENCES ciudades(id_ciu),\n  CONSTRAINT fk_personas_estados_civiles FOREIGN KEY (id_ec) REFERENCES estados_civiles(id_ec)\n);\nCREATE TABLE funcionarios (\n  id_fun     SERIAL PRIMARY KEY,\n  id_per     INTEGER NOT NULL,\n  id_car     INTEGER NOT NULL,\n  fun_estado VARCHAR(20) NOT NULL,\n  CONSTRAINT fk_funcionarios_personas FOREIGN KEY (id_per) REFERENCES personas(id_per),\n  CONSTRAINT fk_funcionarios_cargos FOREIGN KEY (id_car) REFERENCES cargos(id_car)\n);\nCREATE TABLE pedido (\n  ped_nro    SERIAL PRIMARY KEY,\n  ped_estado VARCHAR(20) NOT NULL,\n  ped_fecha  DATE NOT NULL,\n  id_fun     INTEGER NOT NULL,\n  CONSTRAINT fk_pedido_funcionarios FOREIGN KEY (id_fun) REFERENCES funcionarios(id_fun)\n);\nCREATE TABLE pedido_detalle (\n  ped_nro   INTEGER NOT NULL,\n  id_art    INTEGER NOT NULL,\n  ped_canti INTEGER NOT NULL,\n  PRIMARY KEY (ped_nro, id_art),\n  CONSTRAINT fk_pedido_detalle_pedido FOREIGN KEY (ped_nro) REFERENCES pedido(ped_nro),\n  CONSTRAINT fk_pedido_detalle_articulos FOREIGN KEY (id_art) REFERENCES articulos(id_art)\n);\nCREATE TABLE stock (\n  id_art INTEGER NOT NULL,\n  id_dep INTEGER NOT NULL,\n  actual INTEGER NOT NULL,\n  minimo INTEGER NOT NULL,\n  maximo INTEGER NOT NULL,\n  PRIMARY KEY (id_art, id_dep),\n  CONSTRAINT fk_stock_articulos FOREIGN KEY (id_art) REFERENCES articulos(id_art),\n  CONSTRAINT fk_stock_depositos FOREIGN KEY (id_dep) REFERENCES depositos(id_dep)\n);\n\n-- Inserción de registros\nINSERT INTO estados_civiles (ec_descri) VALUES\n  ('SOLTERO/A'),\n  ('CASADO/A');\nINSERT INTO cargos (car_descri) VALUES\n  ('Gerente'),\n  ('Supervisor');\nINSERT INTO ciudades (ciu_descri) VALUES\n  ('Asunción'),\n  ('Ciudad del Este');\nINSERT INTO articulos (arti_descri, precio_uni, art_tipo) VALUES\n  ('Notebook Lenovo 15\"', 4500000.00, 'Electrónica'),\n  ('Mouse inalámbrico', 85000.00, 'Periférico'),\n  ('Teclado mecánico', 120000.00, 'Periférico');\nINSERT INTO depositos (dep_descri) VALUES\n  ('Depósito Central'),\n  ('Depósito Este');\nINSERT INTO personas (per_nombre, per_apellido, id_ciu, id_ec) VALUES\n  ('Juan', 'Pérez', 1, 2),\n  ('María', 'González', 1, 1);\nINSERT INTO funcionarios (id_per, id_car, fun_estado) VALUES\n  (1, 1, 'Activo'),\n  (2, 1, 'Activo');\nINSERT INTO pedido (ped_estado, ped_fecha, id_fun) VALUES\n  ('Pendiente', '2026-01-15', 1),\n  ('Entregado', '2026-01-20', 2);\nINSERT INTO pedido_detalle (ped_nro, id_art, ped_canti) VALUES\n  (1, 1, 2),\n  (1, 2, 5),\n  (2, 3, 1);\nINSERT INTO stock (id_art, id_dep, actual, minimo, maximo) VALUES\n  (1, 1, 15, 5, 30),\n  (1, 2, 8, 3, 20),\n  (2, 1, 50, 10, 100);\n";
-var QUERIES="-- Consultas de ejemplo (Ejecutar corre todas; selecciona una para correr solo esa)\nSELECT * FROM stock;\n\nSELECT p.ped_nro, p.ped_fecha, p.ped_estado,\n       pe.per_nombre || ' ' || pe.per_apellido AS funcionario, c.car_descri AS cargo\nFROM pedido p\nJOIN funcionarios f ON f.id_fun = p.id_fun\nJOIN personas pe ON pe.id_per = f.id_per\nJOIN cargos c ON c.id_car = f.id_car\nORDER BY p.ped_nro;\n\nSELECT a.arti_descri, d.dep_descri, s.actual, s.minimo\nFROM stock s\nJOIN articulos a ON a.id_art = s.id_art\nJOIN depositos d ON d.id_dep = s.id_dep\nORDER BY a.arti_descri;\n\nSELECT pd.ped_nro, SUM(pd.ped_canti * a.precio_uni) AS total\nFROM pedido_detalle pd JOIN articulos a ON a.id_art = pd.id_art\nGROUP BY pd.ped_nro ORDER BY pd.ped_nro;\n";
-var AYUDA="Comandos:\n  \\dt          listar tablas\n  \\d tabla     describir una tabla\n\nSQL: CREATE TABLE, DROP TABLE, INSERT ... RETURNING, SELECT (JOIN, LEFT JOIN, WHERE,\nGROUP BY, HAVING, ORDER BY, LIMIT, OFFSET, DISTINCT), UPDATE, DELETE,\nBEGIN / COMMIT / ROLLBACK.\nTipos: SERIAL, INTEGER, NUMERIC, VARCHAR, TEXT, DATE, TIMESTAMP, BOOLEAN.\nRestricciones: PRIMARY KEY, UNIQUE, NOT NULL, DEFAULT, CHECK, REFERENCES.\nFunciones: COUNT SUM AVG MIN MAX ROUND UPPER LOWER LENGTH ABS COALESCE NOW VERSION.";
+<div class="help-category">
+<h3>Bases de datos y tablas</h3>
+<div class="help-command"><code>CREATE DATABASE compras;</code><span> — crea una base de datos</span></div>
+<div class="help-command"><code>CREATE TABLE productos (id INT, nombre VARCHAR, precio DECIMAL);</code><span> — crea una tabla</span></div>
+</div>
+<div class="help-category">
+<h3>DML</h3>
+<div class="help-command"><code>INSERT INTO productos VALUES (1, 'Mouse', '50');</code><span> — inserta datos</span></div>
+<div class="help-command"><code>SELECT * FROM productos;</code><span> — consulta datos</span></div>
+<div class="help-command"><code>UPDATE productos SET precio='60' WHERE id='1';</code><span> — actualiza datos</span></div>
+<div class="help-command"><code>DELETE FROM productos WHERE id='1';</code><span> — elimina datos</span></div>
+</div>
+<div class="help-category">
+<h3>Roles y usuarios</h3>
+<div class="help-command"><code>CREATE ROLE ventas NOLOGIN;</code><span> — crea un rol de grupo</span></div>
+<div class="help-command"><code>CREATE USER juan WITH PASSWORD '1234';</code><span> — crea un usuario con login</span></div>
+<div class="help-command"><code>GRANT ventas TO juan;</code><span> — asigna un rol a un usuario</span></div>
+<div class="help-command"><code>REVOKE ventas FROM juan;</code><span> — quita un rol de un usuario</span></div>
+<div class="help-command"><code>DROP ROLE ventas;</code> / <code>DROP USER juan;</code><span> — elimina un rol/usuario sin dependencias</span></div>
+<div class="help-command"><code>SET ROLE ventas;</code><span> — cambia el rol activo (requiere membresía o ser superusuario)</span></div>
+<div class="help-command"><code>RESET ROLE;</code><span> — vuelve al rol de login original</span></div>
+</div>
+<div class="help-category">
+<h3>Permisos</h3>
+<div class="help-command"><code>GRANT CONNECT ON DATABASE compras TO juan;</code><span> — permite conectarse</span></div>
+<div class="help-command"><code>GRANT USAGE, CREATE ON SCHEMA public TO ventas;</code><span> — permite usar/crear en el esquema</span></div>
+<div class="help-command"><code>GRANT SELECT, INSERT, UPDATE, DELETE ON productos TO ventas;</code><span> — otorga privilegios sobre una tabla</span></div>
+<div class="help-command"><code>GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA public TO ventas;</code><span> — otorga privilegios sobre todas las tablas</span></div>
+<div class="help-command"><code>REVOKE SELECT ON productos FROM ventas;</code><span> — revoca un privilegio</span></div>
+</div>
+<div class="help-category">
+<h3>Sistema</h3>
+<div class="help-command"><code>SELECT version();</code><span> — muestra la versión simulada</span></div>
+<div class="help-command"><code>SELECT * FROM pg_roles;</code><span> — lista los roles (igual a \\du)</span></div>
+<div class="help-command"><code>BACKUP DATABASE compras;</code><span> — genera un respaldo textual</span></div>
+</div>`;
 
-/* ---------- utilidades ---------- */
-function E(m,d){var e=new Error(m);e.d=d;return e;}
-function tbl(n){var t=db.tables[n];if(!t)throw E('relation "'+n+'" does not exist');return t;}
-function cmp(a,b){if(typeof a!==typeof b){if(typeof a==='number'&&!isNaN(b))b=+b;else if(typeof b==='number'&&!isNaN(a))a=+a;}return a<b?-1:a>b?1:0;}
-function wrap(t,r){var o={};o[t.name]=r;return o;}
-function cx(t){return{src:[{al:t.name,t:t}]};}
-var NOCX={src:[]};
+const EXPLAIN=`
+<div class="help-category">
+<h3>Arquitectura</h3>
+<p>HTML define la estructura de la terminal, CSS su apariencia tipo consola y JavaScript interpreta los comandos y mantiene el estado en memoria (objeto DB).</p>
+</div>
+<div class="help-category">
+<h3>Roles y usuarios</h3>
+<p>Un usuario es simplemente un rol con LOGIN. Un rol NOLOGIN no puede conectarse directamente, pero sirve para agrupar privilegios que luego se otorgan a los usuarios mediante GRANT.</p>
+</div>
+<div class="help-category">
+<h3>hasPrivilege()</h3>
+<p>Antes de ejecutar SELECT, INSERT, UPDATE, DELETE, CREATE o CONNECT, el emulador consulta esta función. Si el rol activo no posee el privilegio (ni lo hereda de un rol del que es miembro), se devuelve un error con el código SQLSTATE 42501, igual que en PostgreSQL real.</p>
+</div>
+<div class="help-category">
+<h3>SET ROLE / RESET ROLE / whoami</h3>
+<p>SET ROLE cambia el rol efectivo de la sesión, pero solo si el rol de login es superusuario o tiene ese rol concedido por membresía (GRANT rol TO usuario). RESET ROLE vuelve al rol original de conexión. El comando whoami muestra en cualquier momento cuál es el rol de login y cuál el rol de sesión activo.</p>
+</div>
+<div class="help-category">
+<h3>Dependencias al eliminar roles</h3>
+<p>No se permite eliminar un rol si otro rol o usuario lo tiene concedido, ni eliminar un usuario que todavía conserva roles asignados. Primero hay que ejecutar REVOKE para quitar esa dependencia, igual que PostgreSQL exige antes de un DROP ROLE.</p>
+</div>
+<div class="help-category">
+<h3>Memoria RAM</h3>
+<p>Todo el estado vive en el objeto DB, en memoria del navegador. No se usa localStorage ni una base real, por lo que recargar la página (F5) reinicia la sesión al estado base.</p>
+</div>
+<div class="help-category">
+<h3>BACKUP</h3>
+<p>Genera un dump textual simulado combinando sentencias CREATE TABLE e INSERT con los datos actuales de la base indicada.</p>
+</div>`;
+    </script>
 
-/* ---------- lexer ---------- */
-function lex(s){var t=[],m,i,re=/\s+|--[^\n]*|('(?:[^']|'')*')|("(?:[^"]|"")*")|(\d+\.?\d*)|([A-Za-z_][A-Za-z0-9_]*)|(<>|<=|>=|!=|\|\||::|[(),.*+\-\/%=<>;])/y;
- while(re.lastIndex<s.length){i=re.lastIndex;m=re.exec(s);if(!m)throw E('syntax error at or near "'+s.slice(i,i+8)+'"');
-  if(m[1]!==undefined)t.push({k:'s',v:m[1].slice(1,-1).replace(/''/g,"'")});
-  else if(m[2]!==undefined)t.push({k:'i',v:m[2].slice(1,-1).replace(/""/g,'"')});
-  else if(m[3]!==undefined)t.push({k:'n',v:parseFloat(m[3])});
-  else if(m[4]!==undefined)t.push({k:'w',v:m[4].toLowerCase()});
-  else if(m[5])t.push({k:'p',v:m[5]});}
- return t;}
-function mk(sql){return{t:lex(sql),n:0,
- cur:function(o){return this.t[this.n+(o||0)];},
- is:function(v,o){var k=this.cur(o);return !!k&&(k.k==='w'||k.k==='p')&&k.v===v;},
- eat:function(v){if(this.is(v)){this.n++;return true;}return false;},
- ex:function(v){if(!this.eat(v))this.bad();},
- bad:function(){var k=this.cur();throw E('syntax error'+(k?' at or near "'+k.v+'"':' at end of input'));},
- id:function(){var k=this.cur();if(!k||(k.k!=='w'&&k.k!=='i'))this.bad();this.n++;return k.v;}};}
-function end(P){if(P.n<P.t.length)P.bad();}
-var RES={from:1,where:1,group:1,order:1,limit:1,offset:1,having:1,join:1,left:1,inner:1,on:1,returning:1,union:1,set:1,values:1,and:1,or:1,as:1,cross:1,right:1,full:1,outer:1};
+    <!-- ================================================================
+         INTERACCIÓN DE LA TERMINAL (antes script.js)
+         Conecta la interfaz con el motor de comandos.
+         ================================================================ -->
+    <script>
+const out=document.getElementById("terminalOutput");
+const input=document.getElementById("commandInput");
+const promptEl=document.getElementById("prompt");
+const helpPanel=document.getElementById("helpPanel");
+const helpTitle=document.getElementById("helpTitle");
+const helpContent=document.getElementById("helpContent");
+const elUser=document.getElementById("currentUser");
+const elDatabase=document.getElementById("currentDatabase");
+const elRole=document.getElementById("currentRole");
 
-/* ---------- parser de expresiones ---------- */
-function pe(P){var a=pa(P);while(P.eat('or'))a={t:'bin',op:'or',a:a,b:pa(P)};return a;}
-function pa(P){var a=pn(P);while(P.eat('and'))a={t:'bin',op:'and',a:a,b:pn(P)};return a;}
-function pn(P){return P.eat('not')?{t:'not',a:pn(P)}:pc(P);}
-function pc(P){var a=pcat(P);for(;;){
- if(P.eat('is')){var n=P.eat('not');if(P.eat('null')){a={t:'isn',a:a,neg:n};continue;}P.bad();}
- var ng=false;
- if(P.is('not')&&(P.is('in',1)||P.is('like',1)||P.is('ilike',1)||P.is('between',1))){P.n++;ng=true;}
- if(P.eat('in')){P.ex('(');var l=[];do l.push(pe(P));while(P.eat(','));P.ex(')');a={t:'in',a:a,l:l,neg:ng};continue;}
- var ci=P.is('ilike');
- if(P.eat('like')||P.eat('ilike')){a={t:'like',a:a,b:pcat(P),neg:ng,ci:ci};continue;}
- if(P.eat('between')){var lo=pcat(P);P.ex('and');a={t:'btw',a:a,lo:lo,hi:pcat(P),neg:ng};continue;}
- var k=P.cur();
- if(k&&k.k==='p'&&/^(=|<>|!=|<=|>=|<|>)$/.test(k.v)){P.n++;a={t:'bin',op:k.v==='!='?'<>':k.v,a:a,b:pcat(P)};continue;}
- return a;}}
-function pcat(P){var a=pad(P);while(P.eat('||'))a={t:'bin',op:'||',a:a,b:pad(P)};return a;}
-function pad(P){var a=pm(P),k;while((k=P.cur())&&k.k==='p'&&(k.v==='+'||k.v==='-')){P.n++;a={t:'bin',op:k.v,a:a,b:pm(P)};}return a;}
-function pm(P){var a=pu(P),k;while((k=P.cur())&&k.k==='p'&&(k.v==='*'||k.v==='/'||k.v==='%')){P.n++;a={t:'bin',op:k.v,a:a,b:pu(P)};}return a;}
-function pu(P){if(P.eat('-'))return{t:'neg',a:pu(P)};if(P.eat('+'))return pu(P);
- var a=pp(P);while(P.eat('::')){var ty=P.id();if(P.eat('(')){while(!P.eat(')')){if(!P.cur())P.bad();P.n++;}}a={t:'cast',a:a,ty:ty};}return a;}
-function pp(P){var k=P.cur();if(!k)P.bad();
- if(k.k==='n'||k.k==='s'){P.n++;return{t:'lit',v:k.v};}
- if(P.eat('(')){var e=pe(P);P.ex(')');return e;}
- if(k.k==='w'){
-  if(k.v==='null'){P.n++;return{t:'lit',v:null};}
-  if(k.v==='true'||k.v==='false'){P.n++;return{t:'lit',v:k.v==='true'};}}
- if(k.k==='w'||k.k==='i'){P.n++;
-  if(k.k==='w'&&P.is('(')){P.n++;var f={t:'fn',n:k.v,a:[]};
-   if(P.eat('*'))f.star=true;else if(!P.is(')')){f.dist=P.eat('distinct');do f.a.push(pe(P));while(P.eat(','));}
-   P.ex(')');return f;}
-  if(k.k==='w'&&/^(current_date|current_timestamp)$/.test(k.v))return{t:'fn',n:k.v,a:[]};
-  if(P.eat('.')){return{t:'col',tb:k.v,n:P.id()};}
-  return{t:'col',n:k.v};}
- P.bad();}
-function plist(P){var l=[];P.ex('(');do l.push(P.id());while(P.eat(','));P.ex(')');return l;}
-function alias(P){var q=P.cur();return(q&&(q.k==='i'||(q.k==='w'&&!RES[q.v])))?P.id():null;}
-function pitems(P){var it=[];do{
- if(P.is('*')){P.n++;it.push({e:{t:'star'}});continue;}
- var k=P.cur();
- if(k&&(k.k==='w'||k.k==='i')&&P.is('.',1)&&P.is('*',2)){P.n+=3;it.push({e:{t:'star',tb:k.v}});continue;}
- var e=pe(P),al=P.eat('as')?P.id():alias(P);
- it.push({e:e,al:al});}while(P.eat(','));return it;}
-function ptab(P){var n=P.id(),al=n;if(P.eat('as'))al=P.id();else{var a=alias(P);if(a)al=a;}return{n:n,al:al};}
-function psel(P){P.ex('select');var s={dist:P.eat('distinct'),it:pitems(P),src:[],j:[],ob:[],gb:[]};
- if(P.eat('from')){s.src.push(ptab(P));
-  for(;;){var lf=false;
-   if(P.eat(',')){s.j.push({t:ptab(P),on:null,lf:false});continue;}
-   if(P.eat('left')){lf=true;P.eat('outer');}else P.eat('inner');
-   if(!P.eat('join'))break;
-   var t2=ptab(P);P.ex('on');s.j.push({t:t2,on:pe(P),lf:lf});}}
- if(P.eat('where'))s.w=pe(P);
- if(P.eat('group')){P.ex('by');do s.gb.push(pe(P));while(P.eat(','));}
- if(P.eat('having'))s.h=pe(P);
- if(P.eat('order')){P.ex('by');do{var e=pe(P),d=false;if(P.eat('desc'))d=true;else P.eat('asc');s.ob.push({e:e,d:d});}while(P.eat(','));}
- if(P.eat('limit'))s.lim=pe(P);
- if(P.eat('offset'))s.off=pe(P);
- return s;}
+/* Historial de comandos (flechas ↑/↓) y lista de palabras clave (Tab). */
+let history=[],histIndex=-1;
+const KEYWORDS=["\\l","\\list","\\dt","\\d ","\\du","\\c ","\\connect ","\\q","whoami","clear",
+"SELECT * FROM ","SELECT version();","SELECT * FROM pg_roles;","CREATE DATABASE ","CREATE TABLE ",
+"CREATE ROLE ","CREATE USER ","DROP ROLE ","DROP USER ","GRANT ","REVOKE ","SET ROLE ","RESET ROLE;",
+"INSERT INTO ","UPDATE ","DELETE FROM ","BACKUP DATABASE "];
 
-/* ---------- evaluación ---------- */
-var AGG={count:1,sum:1,avg:1,min:1,max:1};
-function hasAgg(e){if(!e||typeof e!=='object')return false;if(e.t==='fn'&&AGG[e.n])return true;return Object.keys(e).some(function(k){return hasAgg(e[k]);});}
-function nm(e){return e.t==='col'||e.t==='fn'?e.n:e.t==='cast'?nm(e.a):'?column?';}
-function fc(e){if(!e||typeof e!=='object')return'';if(e.t==='col')return e.n;var r='';Object.keys(e).some(function(k){return(r=fc(e[k]));});return r;}
-function col(e,env,ctx){
- if(e.tb){var s=ctx.src.find(function(x){return x.al===e.tb;});if(!s)throw E('missing FROM-clause entry for table "'+e.tb+'"');
-  if(!s.t.cols.some(function(c){return c.n===e.n;}))throw E('column '+e.tb+'.'+e.n+' does not exist');
-  var r=env[e.tb];return r?r[e.n]:null;}
- var m=ctx.src.filter(function(x){return x.t.cols.some(function(c){return c.n===e.n;});});
- if(!m.length)throw E('column "'+e.n+'" does not exist');
- if(m.length>1)throw E('column reference "'+e.n+'" is ambiguous');
- var r2=env[m[0].al];return r2?r2[e.n]:null;}
-function castv(v,ty){if(v===null)return null;
- if(/^(int|integer|int4|int8|bigint|smallint)$/.test(ty)){var n=Math.round(Number(v));if(isNaN(n))throw E('invalid input syntax for type integer: "'+v+'"');return n;}
- if(/^(numeric|decimal|real|float|float8|double)$/.test(ty)){var m=Number(v);if(isNaN(m))throw E('invalid input syntax for type numeric: "'+v+'"');return m;}
- if(ty==='date')return String(v).slice(0,10);
- if(/^bool/.test(ty))return v===true||/^(t|true|yes|on|1)$/i.test(String(v));
- return String(v);}
-function fn(e,env,grp,ctx){var n=e.n;
- if(AGG[n]){if(!grp)throw E('aggregate functions are not allowed in this context');
-  if(e.star)return grp.length;
-  var vs=grp.map(function(g){return ev(e.a[0],g,null,ctx);}).filter(function(v){return v!==null;});
-  if(e.dist){var sn={};vs=vs.filter(function(v){return sn[v]?false:(sn[v]=1);});}
-  if(n==='count')return vs.length;
-  if(!vs.length)return null;
-  if(n==='min'||n==='max')return vs.reduce(function(a,b){return(cmp(a,b)<0)===(n==='min')?a:b;});
-  var s=vs.reduce(function(a,b){return a+Number(b);},0);return n==='sum'?s:s/vs.length;}
- var a=e.a.map(function(x){return ev(x,env,grp,ctx);});
- switch(n){
- case'now':case'current_timestamp':return new Date().toISOString().slice(0,19).replace('T',' ');
- case'current_date':return new Date().toISOString().slice(0,10);
- case'upper':return a[0]===null?null:String(a[0]).toUpperCase();
- case'lower':return a[0]===null?null:String(a[0]).toLowerCase();
- case'length':return a[0]===null?null:String(a[0]).length;
- case'abs':return a[0]===null?null:Math.abs(a[0]);
- case'round':return a[0]===null?null:Number(Math.round(a[0]+'e'+(a[1]||0))+'e-'+(a[1]||0));
- case'coalesce':return a.find(function(v){return v!==null;})??null;
- case'version':return'PostgreSQL 16.0 (simulado en el navegador)';}
- throw E('function '+n+'() does not exist');}
-function ev(e,env,grp,ctx){
- switch(e.t){
- case'lit':return e.v;
- case'col':return col(e,env,ctx);
- case'fn':return fn(e,env,grp,ctx);
- case'neg':{var a=ev(e.a,env,grp,ctx);return a===null?null:-a;}
- case'not':{var n=ev(e.a,env,grp,ctx);return n===null?null:!n;}
- case'isn':{var v=ev(e.a,env,grp,ctx);return e.neg?v!==null:v===null;}
- case'cast':return castv(ev(e.a,env,grp,ctx),e.ty);
- case'in':{var x=ev(e.a,env,grp,ctx);if(x===null)return null;var f=e.l.some(function(i){var y=ev(i,env,grp,ctx);return y!==null&&cmp(x,y)===0;});return e.neg?!f:f;}
- case'btw':{var b=ev(e.a,env,grp,ctx),lo=ev(e.lo,env,grp,ctx),hi=ev(e.hi,env,grp,ctx);if(b===null||lo===null||hi===null)return null;var r=cmp(b,lo)>=0&&cmp(b,hi)<=0;return e.neg?!r:r;}
- case'like':{var s=ev(e.a,env,grp,ctx),p=ev(e.b,env,grp,ctx);if(s===null||p===null)return null;
-  var re=new RegExp('^'+String(p).replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/%/g,'.*').replace(/_/g,'.')+'$',e.ci?'is':'s'),m=re.test(String(s));return e.neg?!m:m;}
- case'bin':{var o=e.op;
-  if(o==='and'||o==='or'){var A=ev(e.a,env,grp,ctx);if(o==='and'&&A===false)return false;if(o==='or'&&A===true)return true;
-   var B=ev(e.b,env,grp,ctx);if(o==='and'&&B===false)return false;if(o==='or'&&B===true)return true;return(A===null||B===null)?null:o==='and';}
-  var p1=ev(e.a,env,grp,ctx),q1=ev(e.b,env,grp,ctx);if(p1===null||q1===null)return null;
-  switch(o){
-  case'=':return cmp(p1,q1)===0;case'<>':return cmp(p1,q1)!==0;case'<':return cmp(p1,q1)<0;case'>':return cmp(p1,q1)>0;
-  case'<=':return cmp(p1,q1)<=0;case'>=':return cmp(p1,q1)>=0;
-  case'||':return String(p1)+String(q1);
-  case'+':return +p1+ +q1;case'-':return p1-q1;case'*':return p1*q1;
-  case'/':if(+q1===0)throw E('division by zero');return(Number.isInteger(p1)&&Number.isInteger(q1))?Math.trunc(p1/q1):p1/q1;
-  case'%':if(+q1===0)throw E('division by zero');return p1%q1;}}}
- throw E('unsupported expression');}
+function isSuper(){return !!DB.roles[DB.sessionRole]?.superuser}
+function promptText(){return DB.currentDatabase+"="+(isSuper()?"#":">")}
 
-/* ---------- SELECT ---------- */
-function expand(it,srcs){var items=[];it.forEach(function(i){
- if(i.e.t==='star')srcs.forEach(function(x){if(i.e.tb&&i.e.tb!==x.al)return;x.t.cols.forEach(function(c){items.push({e:{t:'col',tb:x.al,n:c.n},name:c.n});});});
- else items.push({e:i.e,name:i.al||nm(i.e)});});return items;}
-function runSel(s){
- var ctx={src:[]},envs=[{}];
- if(s.src.length){var t0=tbl(s.src[0].n),a0=s.src[0].al;ctx.src.push({al:a0,t:t0});
-  envs=t0.rows.map(function(r){var o={};o[a0]=r;return o;});
-  s.j.forEach(function(j){var t=tbl(j.t.n);ctx.src.push({al:j.t.al,t:t});var ne=[];
-   envs.forEach(function(en){var hit=false;
-    t.rows.forEach(function(r){var o=Object.assign({},en);o[j.t.al]=r;if(!j.on||ev(j.on,o,null,ctx)===true){ne.push(o);hit=true;}});
-    if(!hit&&j.lf){var o2=Object.assign({},en);o2[j.t.al]=null;ne.push(o2);}});
-   envs=ne;});}
- if(s.w)envs=envs.filter(function(e){return ev(s.w,e,null,ctx)===true;});
- var items=expand(s.it,ctx.src),units;
- var gb=s.gb.map(function(g){return g.t==='lit'&&typeof g.v==='number'?items[g.v-1].e:g;});
- var agg=gb.length||items.some(function(i){return hasAgg(i.e);})||(s.h&&hasAgg(s.h));
- if(agg){var gs={},ord=[];
-  if(gb.length)envs.forEach(function(e){var k=JSON.stringify(gb.map(function(g){return ev(g,e,null,ctx);}));if(!gs[k]){gs[k]=[];ord.push(k);}gs[k].push(e);});
-  else{gs.a=envs;ord=['a'];}
-  units=ord.map(function(k){return{env:gs[k][0]||{},grp:gs[k]};});
-  if(s.h)units=units.filter(function(u){return ev(s.h,u.env,u.grp,ctx)===true;});
- }else units=envs.map(function(e){return{env:e,grp:null};});
- var out=units.map(function(u){return{u:u,v:items.map(function(i){return ev(i.e,u.env,u.grp,ctx);})};});
- if(s.ob.length){
-  var keys=s.ob.map(function(o){var e=o.e;
-   if(e.t==='lit'&&typeof e.v==='number')return function(r){return r.v[e.v-1];};
-   if(e.t==='col'&&!e.tb){var ix=items.findIndex(function(i){return i.name===e.n;});if(ix>=0)return function(r){return r.v[ix];};}
-   return function(r){return ev(e,r.u.env,r.u.grp,ctx);};});
-  out.sort(function(a,b){for(var i=0;i<keys.length;i++){var x=keys[i](a),y=keys[i](b),c=x===y?0:x===null?1:y===null?-1:cmp(x,y);if(c)return s.ob[i].d?-c:c;}return 0;});}
- var rows=out.map(function(r){return r.v;});
- if(s.dist){var seen={};rows=rows.filter(function(r){var k=JSON.stringify(r);return seen[k]?false:(seen[k]=1);});}
- var o=s.off?ev(s.off,{},null,NOCX):0,l=s.lim?ev(s.lim,{},null,NOCX):rows.length;
- return{cols:items.map(function(i){return i.name;}),rows:rows.slice(o,o+l)};}
-function retr(t,it,rows){var ctx=cx(t),items=expand(it,ctx.src);
- return{cols:items.map(function(i){return i.name;}),rows:rows.map(function(r){var env=wrap(t,r);return items.map(function(i){return ev(i.e,env,null,ctx);});})};}
+/* Actualiza prompt (RF-02) y barra de estado tras cada comando. */
+function updateStatus(){
+ promptEl.textContent=promptText();
+ elUser.textContent=DB.sessionRole;
+ elDatabase.textContent=DB.currentDatabase;
+ elRole.textContent=isSuper()?"SUPERUSER":"USER";
+}
 
-/* ---------- tipos y restricciones ---------- */
-function coerce(v,c){if(v===null)return null;
- switch(c.k){
- case'int':{var n=Number(v);if(isNaN(n)||v===''||typeof v==='boolean')throw E('invalid input syntax for type integer: "'+v+'"');return Math.round(n);}
- case'num':{var m=Number(v);if(isNaN(m)||v===''||typeof v==='boolean')throw E('invalid input syntax for type numeric: "'+v+'"');return c.sc!=null?+m.toFixed(c.sc):m;}
- case'text':{var s=String(v);if(c.len&&s.length>c.len)throw E('value too long for type character varying('+c.len+')');return s;}
- case'date':{var d=String(v);if(!/^\d{4}-\d{2}-\d{2}/.test(d))throw E('invalid input syntax for type date: "'+d+'"');return d.slice(0,10);}
- case'bool':{if(typeof v==='boolean')return v;if(/^(t|true|yes|on|1)$/i.test(v))return true;if(/^(f|false|no|off|0)$/i.test(v))return false;throw E('invalid input syntax for type boolean: "'+v+'"');}}
- return String(v);}
-function chk(t,r,pool){
- t.cols.forEach(function(c){if(r[c.n]===null&&(c.nn||t.pk.indexOf(c.n)>=0))throw E('null value in column "'+c.n+'" of relation "'+t.name+'" violates not-null constraint');});
- t.ck.forEach(function(x){if(ev(x,wrap(t,r),null,cx(t))===false)throw E('new row for relation "'+t.name+'" violates check constraint "'+t.name+'_'+fc(x)+'_check"');});
- (t.pk.length?[t.pk]:[]).concat(t.uq).forEach(function(u){
-  if(u.some(function(c){return r[c]===null;}))return;
-  if(pool.some(function(o){return u.every(function(c){return o[c]!==null&&cmp(o[c],r[c])===0;});}))
-   throw E('duplicate key value violates unique constraint "'+t.name+'_'+(u===t.pk?'pkey':u.join('_')+'_key')+'"','Key ('+u.join(', ')+')=('+u.map(function(c){return r[c];}).join(', ')+') already exists.');});
- t.fk.forEach(function(f){var v=f.c.map(function(c){return r[c];});if(v.some(function(x){return x===null;}))return;
-  var p=tbl(f.rt),rc=f.rc||p.pk;
-  if(!p.rows.some(function(o){return rc.every(function(c,i){return cmp(o[c],v[i])===0;});}))
-   throw E('insert or update on table "'+t.name+'" violates foreign key constraint "'+t.name+'_'+f.c.join('_')+'_fkey"','Key ('+f.c.join(', ')+')=('+v.join(', ')+') is not present in table "'+f.rt+'".');});}
+function printLine(text,cls){
+ const div=document.createElement("div");
+ div.className="terminal-line "+(cls||"output-normal");
+ div.textContent=text;
+ out.appendChild(div);
+ out.scrollTop=out.scrollHeight;
+}
 
-/* ---------- DDL / DML ---------- */
-function pcol(P,t){var c={n:P.id(),nn:false},w=[];
- while(P.cur()&&P.cur().k==='w'&&!/^(not|null|primary|unique|default|references|check)$/.test(P.cur().v)){w.push(P.cur().v);P.n++;}
- if(!w.length)P.bad();
- var a=[];if(P.eat('(')){while(!P.eat(')')){var k=P.cur();if(!k)P.bad();if(k.k==='n')a.push(k.v);P.n++;}}
- var b=w[0];c.ty=w.join(' ')+(a.length?'('+a.join(',')+')':'');
- if(/^(serial|bigserial|smallserial)$/.test(b)){c.k='int';c.ser=true;c.nn=true;}
- else if(/^(int|integer|int4|int8|bigint|smallint)$/.test(b))c.k='int';
- else if(/^(numeric|decimal|real|float|float4|float8|double)$/.test(b)){c.k='num';if(a.length>1)c.sc=a[1];}
- else if(/^(varchar|character|char|text)$/.test(b)){c.k='text';if(a.length&&b!=='text')c.len=a[0];}
- else if(b==='date')c.k='date';
- else if(/^timestamp/.test(b))c.k='ts';
- else if(/^bool/.test(b))c.k='bool';
- else throw E('type "'+b+'" does not exist');
- for(;;){
-  if(P.eat('not')){P.ex('null');c.nn=true;}
-  else if(P.eat('null')){}
-  else if(P.eat('primary')){P.ex('key');t.pk=[c.n];c.nn=true;}
-  else if(P.eat('unique'))t.uq.push([c.n]);
-  else if(P.eat('default'))c.def=pu(P);
-  else if(P.eat('references')){var rt=P.id();t.fk.push({c:[c.n],rt:rt,rc:P.is('(')?plist(P):null});}
-  else if(P.eat('check')){P.ex('(');t.ck.push(pe(P));P.ex(')');}
-  else break;}
- t.cols.push(c);}
-function pcreate(P){P.ex('create');P.ex('table');var ine=false;if(P.eat('if')){P.ex('not');P.ex('exists');ine=true;}
- var t={name:P.id(),cols:[],rows:[],seq:{},pk:[],uq:[],fk:[],ck:[]};P.ex('(');
- do{
-  if(P.eat('constraint'))P.id();
-  if(P.eat('primary')){P.ex('key');t.pk=plist(P);}
-  else if(P.eat('unique'))t.uq.push(plist(P));
-  else if(P.eat('foreign')){P.ex('key');var cs=plist(P);P.ex('references');var rt=P.id();t.fk.push({c:cs,rt:rt,rc:P.is('(')?plist(P):null});}
-  else if(P.eat('check')){P.ex('(');t.ck.push(pe(P));P.ex(')');}
-  else pcol(P,t);
- }while(P.eat(','));
- P.ex(')');return{t:t,ine:ine};}
-function pins(P){P.ex('insert');P.ex('into');var n=P.id(),cs=null;if(P.is('('))cs=plist(P);P.ex('values');
- var rs=[];do{P.ex('(');var r=[];do r.push(pe(P));while(P.eat(','));P.ex(')');rs.push(r);}while(P.eat(','));
- return{n:n,cs:cs,rs:rs,ret:P.eat('returning')?pitems(P):null};}
-function xins(s){var t=tbl(s.n),cs=s.cs||t.cols.map(function(c){return c.n;}),nw=[];
- cs.forEach(function(c){if(!t.cols.some(function(x){return x.n===c;}))throw E('column "'+c+'" of relation "'+t.name+'" does not exist');});
- s.rs.forEach(function(vals){
-  if(vals.length!==cs.length)throw E(vals.length>cs.length?'INSERT has more expressions than target columns':'INSERT has more target columns than expressions');
-  var r={};
-  t.cols.forEach(function(c){var i=cs.indexOf(c.n),v;
-   if(i>=0)v=coerce(ev(vals[i],{},null,NOCX),c);
-   else if(c.ser){t.seq[c.n]=(t.seq[c.n]||0)+1;v=t.seq[c.n];}
-   else v=c.def?coerce(ev(c.def,{},null,NOCX),c):null;
-   r[c.n]=v;});
-  chk(t,r,t.rows.concat(nw));nw.push(r);});
- nw.forEach(function(r){t.rows.push(r);});
- var res=s.ret?retr(t,s.ret,nw):{};res.tag='INSERT 0 '+nw.length;return res;}
-function pupd(P){P.ex('update');var n=P.id(),sets=[];P.ex('set');
- do{var c=P.id();P.ex('=');sets.push({c:c,e:pe(P)});}while(P.eat(','));
- var w=P.eat('where')?pe(P):null;return{n:n,sets:sets,w:w,ret:P.eat('returning')?pitems(P):null};}
-function xupd(s){var t=tbl(s.n),ctx=cx(t),ups=[];
- s.sets.forEach(function(x){if(!t.cols.some(function(c){return c.n===x.c;}))throw E('column "'+x.c+'" of relation "'+t.name+'" does not exist');});
- t.rows.forEach(function(r){if(s.w&&ev(s.w,wrap(t,r),null,ctx)!==true)return;
-  var nr=Object.assign({},r);
-  s.sets.forEach(function(x){var c=t.cols.find(function(c){return c.n===x.c;});nr[x.c]=coerce(ev(x.e,wrap(t,r),null,ctx),c);});
-  ups.push({o:r,n:nr});});
- var rest=t.rows.filter(function(o){return !ups.some(function(u){return u.o===o;});});
- ups.forEach(function(u,i){chk(t,u.n,rest.concat(ups.filter(function(_,j){return j!==i;}).map(function(x){return x.n;})));});
- ups.forEach(function(u){Object.assign(u.o,u.n);});
- var res=s.ret?retr(t,s.ret,ups.map(function(u){return u.o;})):{};res.tag='UPDATE '+ups.length;return res;}
-function pdel(P){P.ex('delete');P.ex('from');var n=P.id(),w=P.eat('where')?pe(P):null;return{n:n,w:w,ret:P.eat('returning')?pitems(P):null};}
-function xdel(s){var t=tbl(s.n),ctx=cx(t),gone=t.rows.filter(function(r){return !s.w||ev(s.w,wrap(t,r),null,ctx)===true;});
- Object.keys(db.tables).forEach(function(k){var c=db.tables[k];
-  c.fk.forEach(function(f){if(f.rt!==t.name)return;var rc=f.rc||t.pk;
-   gone.forEach(function(g){
-    var ref=c.rows.some(function(o){return !(c===t&&gone.indexOf(o)>=0)&&f.c.every(function(x,i){return o[x]!==null&&cmp(o[x],g[rc[i]])===0;});});
-    if(ref)throw E('update or delete on table "'+t.name+'" violates foreign key constraint "'+c.name+'_'+f.c.join('_')+'_fkey" on table "'+c.name+'"','Key ('+rc.join(', ')+')=('+rc.map(function(x){return g[x];}).join(', ')+') is still referenced from table "'+c.name+'".');});});});
- var res=s.ret?retr(t,s.ret,gone):{};
- t.rows=t.rows.filter(function(r){return gone.indexOf(r)<0;});res.tag='DELETE '+gone.length;return res;}
-function dtxt(d){return d.t==='lit'?(typeof d.v==='string'?"'"+d.v+"'":String(d.v)):d.t==='fn'?d.n:'expr';}
-function meta(s){var p=s.split(/\s+/),c=p[0];
- if(c==='\\dt'){var ks=Object.keys(db.tables);if(!ks.length)return{text:'Did not find any relations.'};
-  return{cols:['Schema','Name','Type','Owner'],rows:ks.map(function(k){return['public',k,'table','postgres'];})};}
- if(c==='\\d'&&p[1]){var t=tbl(p[1]);
-  return{title:'Table "public.'+t.name+'"',cols:['Column','Type','Nullable','Default'],rows:t.cols.map(function(c){
-   return[c.n,c.ty,(c.nn||t.pk.indexOf(c.n)>=0)?'not null':'',c.ser?"nextval('"+t.name+'_'+c.n+"_seq')":c.def?dtxt(c.def):''];})};}
- if(c==='\\?'||c==='\\h')return{text:AYUDA};
- throw E('invalid command '+c+'. Prueba con \\?');}
-function exec(sql){
- var s=sql.trim();if(s[0]==='\\')return meta(s);
- var P=mk(s),w=P.cur()&&P.cur().v,r;
- switch(w){
- case'select':r=runSel(psel(P));end(P);return r;
- case'insert':r=pins(P);end(P);return xins(r);
- case'update':r=pupd(P);end(P);return xupd(r);
- case'delete':r=pdel(P);end(P);return xdel(r);
- case'create':r=pcreate(P);end(P);
-  if(db.tables[r.t.name]){if(r.ine)return{tag:'NOTICE:  relation "'+r.t.name+'" already exists, skipping'};throw E('relation "'+r.t.name+'" already exists');}
-  r.t.fk.forEach(function(f){if(f.rt!==r.t.name)tbl(f.rt);});
-  db.tables[r.t.name]=r.t;return{tag:'CREATE TABLE'};
- case'drop':{P.ex('drop');P.ex('table');var ie=false;if(P.eat('if')){P.ex('exists');ie=true;}var n=P.id(),cas=P.eat('cascade');end(P);
-  if(!db.tables[n]){if(ie)return{tag:'NOTICE:  table "'+n+'" does not exist, skipping'};throw E('table "'+n+'" does not exist');}
-  Object.keys(db.tables).forEach(function(k){var c=db.tables[k];if(k===n)return;
-   if(c.fk.some(function(f){return f.rt===n;})){if(!cas)throw E('cannot drop table '+n+' because other objects depend on it','constraint on table '+k+' depends on table '+n+'. Usa DROP TABLE ... CASCADE.');
-    c.fk=c.fk.filter(function(f){return f.rt!==n;});}});
-  delete db.tables[n];return{tag:'DROP TABLE'};}
- case'begin':case'start':if(snap)return{tag:'WARNING:  there is already a transaction in progress'};snap=JSON.stringify(db);return{tag:'BEGIN'};
- case'commit':case'end':snap=null;return{tag:'COMMIT'};
- case'rollback':case'abort':if(snap){db=JSON.parse(snap);snap=null;}return{tag:'ROLLBACK'};}
- P.bad();}
+function printTable(t){
+ const wrap=document.createElement("div");
+ wrap.className="terminal-line";
+ if(t.title){
+  const titleDiv=document.createElement("div");
+  titleDiv.className="output-info";
+  titleDiv.style.marginBottom="4px";
+  titleDiv.textContent=t.title;
+  wrap.appendChild(titleDiv);
+ }
+ const tableEl=document.createElement("table");
+ const trh=document.createElement("tr");
+ t.headers.forEach(h=>{const th=document.createElement("th");th.textContent=h;trh.appendChild(th)});
+ tableEl.appendChild(trh);
+ t.rows.forEach(r=>{
+  const tr=document.createElement("tr");
+  r.forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td)});
+  tableEl.appendChild(tr);
+ });
+ wrap.appendChild(tableEl);
+ out.appendChild(wrap);
+ out.scrollTop=out.scrollHeight;
+}
 
-/* ---------- terminal ---------- */
-var ta=document.getElementById('ta'),out=document.getElementById('out');
-function save(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}}
-function load(){try{var r=localStorage.getItem(KEY);if(r){db=JSON.parse(r);return;}}catch(e){}db={tables:{}};}
-function split(s){var o=[],cur='',q=null;
- for(var i=0;i<s.length;i++){var c=s[i];
-  if(q){cur+=c;if(c===q)q=null;continue;}
-  if(c==="'"||c==='"'){q=c;cur+=c;continue;}
-  if(c==='-'&&s[i+1]==='-'){while(i<s.length&&s[i]!=='\n')i++;i--;continue;}
-  if(c===';'){o.push(cur);cur='';continue;}
-  if(c==='\n'&&cur.trim()[0]==='\\'){o.push(cur);cur='';continue;}
-  cur+=c;}
- o.push(cur);return o.map(function(x){return x.trim();}).filter(Boolean);}
-function show(v){if(v===null||v===undefined)return'';if(typeof v==='boolean')return v?'t':'f';if(typeof v==='number')return String(+v.toFixed(10));return String(v);}
-function fmt(r){var cs=r.cols,rows=r.rows.map(function(x){return x.map(show);});
- var w=cs.map(function(c,i){return rows.reduce(function(m,x){return Math.max(m,x[i].length);},c.length);});
- var num=cs.map(function(c,i){return r.rows.length>0&&r.rows.every(function(x){return typeof x[i]==='number'||x[i]===null;});});
- function pad(s,i,h){var g=w[i]-s.length;if(h)return' '.repeat(g>>1)+s+' '.repeat(g-(g>>1));return num[i]?' '.repeat(g)+s:s+' '.repeat(g);}
- var L=[' '+cs.map(function(c,i){return pad(c,i,1);}).join(' | ')+' ',w.map(function(x){return'-'.repeat(x+2);}).join('+')];
- rows.forEach(function(x){L.push(' '+x.map(function(v,i){return pad(v,i);}).join(' | ')+' ');});
- L.push('('+rows.length+(rows.length===1?' row)':' rows)'));return L.join('\n');}
-function add(cls,text){var p=document.createElement('pre');p.className=cls;p.textContent=text;out.appendChild(p);}
-function chips(){var c=document.getElementById('chips');c.textContent='';
- Object.keys(db.tables).forEach(function(k){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=k;b.onclick=function(){ta.value='SELECT * FROM '+k+';';ta.focus();};c.appendChild(b);});
- if(!c.children.length)c.textContent='ninguna todavía';}
-function run(){runText(ta.selectionStart!==ta.selectionEnd?ta.value.slice(ta.selectionStart,ta.selectionEnd):ta.value);}
-function runText(sql){
- split(sql).forEach(function(st){
-  add('cmd','postgres=# '+st.replace(/\s*\n\s*/g,' '));
-  try{var r=exec(st);
-   if(r.title)add('res',r.title);
-   if(r.cols)add('res',fmt(r));
-   if(r.text)add('res',r.text);
-   if(r.tag)add('tag',r.tag);
-  }catch(e){add('err','ERROR:  '+e.message+(e.d?'\nDETAIL:  '+e.d:''));}});
- if(!snap)save();
- chips();out.scrollTop=out.scrollHeight;}
-document.getElementById('bRun').onclick=run;
-ta.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();run();}});
-document.getElementById('bEx').onclick=function(){ta.value=SAMPLE;ta.focus();};
-document.getElementById('bClr').onclick=function(){out.textContent='';};
-var rb=document.getElementById('bRst'),rt;
-rb.onclick=function(){
- if(rb.dataset.sure){clearTimeout(rt);delete rb.dataset.sure;rb.textContent='Restaurar datos originales';db={tables:{}};snap=null;out.textContent='';runText(SAMPLE);return;}
- rb.dataset.sure=1;rb.textContent='¿Seguro? Pulsa otra vez';rt=setTimeout(function(){delete rb.dataset.sure;rb.textContent='Restaurar datos originales';},3000);};
-load();
-add('res','Jehidy · PostgreSQL 16.0 (simulado)');
-if(!Object.keys(db.tables).length){add('res','Creando tu base de datos desde el script LDD-LMD...');runText(SAMPLE);}
-chips();ta.value=QUERIES;
-})();
-</script>
+/* Mapea el "type" que devuelve executeCommand() a las clases reales del CSS (RF-14). */
+const typeClass={success:"output-success",error:"output-error",info:"output-info"};
+
+function runCommand(){
+ const s=input.value;
+ if(!s.trim())return;
+ if(history[history.length-1]!==s.trim())history.push(s.trim());
+ histIndex=-1;
+ printLine(promptText()+" "+s.trim());
+ input.value="";
+ input.style.height="auto";
+ const r=executeCommand(s);
+ if(r){
+  if(r.type==="clear")out.innerHTML="";
+  else if(r.type==="table")printTable(r);
+  else printLine(r.text,typeClass[r.type]);
+ }
+ updateStatus();
+ input.focus();
+}
+
+/* Tab: autocompleta contra KEYWORDS. Si hay una sola coincidencia, la completa;
+   si hay varias, completa el prefijo común y lista las opciones. */
+function autocomplete(){
+ const v=input.value;
+ if(!v)return;
+ const matches=KEYWORDS.filter(k=>k.toLowerCase().startsWith(v.toLowerCase()));
+ if(matches.length===1){
+  input.value=matches[0];
+ }else if(matches.length>1){
+  let common=matches[0];
+  matches.forEach(m=>{let i=0;while(i<common.length&&i<m.length&&common[i].toLowerCase()===m[i].toLowerCase())i++;common=common.slice(0,i)});
+  if(common.length>v.length)input.value=common;
+  printLine(matches.join("   "),"output-info");
+ }
+ input.style.height="auto";input.style.height=input.scrollHeight+"px";
+}
+
+function clearTerminal(){out.innerHTML="";input.focus()}
+
+document.getElementById("runButton").onclick=runCommand;
+document.getElementById("clearButton").onclick=clearTerminal;
+document.getElementById("resetButton").onclick=()=>{
+ DB=initialState();
+ out.innerHTML="";
+ printLine("Sesión reiniciada al estado base.","output-info");
+ updateStatus();
+ input.focus();
+};
+document.getElementById("helpButton").onclick=()=>{
+ helpTitle.textContent="Ayuda rápida";
+ helpContent.innerHTML=HELP;
+ helpPanel.classList.remove("hidden");
+};
+document.getElementById("explainButton").onclick=()=>{
+ helpTitle.textContent="Explicaciones";
+ helpContent.innerHTML=EXPLAIN;
+ helpPanel.classList.remove("hidden");
+};
+document.getElementById("closeHelp").onclick=()=>helpPanel.classList.add("hidden");
+
+/* Enter ejecuta el comando (RF-03); Shift+Enter permite salto de línea.
+   ArrowUp/ArrowDown navegan el historial (solo si el campo no tiene saltos de línea,
+   para no romper la edición de comandos multilínea). Tab autocompleta. Ctrl+L limpia. */
+input.addEventListener("keydown",e=>{
+ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();runCommand();return}
+ if(e.key==="ArrowUp"&&!input.value.includes("\n")){
+  if(history.length){
+   if(histIndex===-1)histIndex=history.length-1;
+   else if(histIndex>0)histIndex--;
+   input.value=history[histIndex]||"";
+   setTimeout(()=>{input.selectionStart=input.selectionEnd=input.value.length},0);
+  }
+  e.preventDefault();return;
+ }
+ if(e.key==="ArrowDown"&&!input.value.includes("\n")){
+  if(histIndex!==-1){
+   if(histIndex<history.length-1){histIndex++;input.value=history[histIndex]}
+   else{histIndex=-1;input.value=""}
+   setTimeout(()=>{input.selectionStart=input.selectionEnd=input.value.length},0);
+  }
+  e.preventDefault();return;
+ }
+ if(e.key==="Tab"){e.preventDefault();autocomplete();return}
+ if(e.key==="l"&&e.ctrlKey){e.preventDefault();clearTerminal();return}
+});
+input.addEventListener("input",()=>{input.style.height="auto";input.style.height=input.scrollHeight+"px"});
+
+printLine("psql (Emulador Educativo) V2","output-info");
+printLine("Usuario inicial: postgres | Base: postgres | Escriba 'whoami' para ver su rol actual.","output-info");
+updateStatus();
+input.focus();
+    </script>
 </body>
 </html>
+  
+  
+
+ 
+
